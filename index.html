@@ -81,13 +81,16 @@ tbody tr:last-child td { border-bottom:none; }
 .loading { display:flex; align-items:center; justify-content:center; padding:60px; color:var(--muted); font-family:var(--font-mono); font-size:12px; gap:10px; }
 .spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
-.empty { padding:48px; text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:12px; line-height:2; }
+.empty { padding:48px; text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:12px; line-height:2.5; }
+.empty-icon { font-size:32px; display:block; margin-bottom:12px; }
 .metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
 .market-row { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-bottom:1px solid rgba(28,35,51,0.5); font-size:12.5px; }
 .market-row:last-child { border-bottom:none; }
 .market-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); text-transform:uppercase; }
 .market-stats { display:flex; gap:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+.info-bar { background:rgba(88,166,255,0.06); border:1px solid rgba(88,166,255,0.15); border-radius:var(--radius); padding:10px 16px; margin-bottom:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); display:flex; align-items:center; gap:8px; }
 @media(max-width:900px){ .charts-grid{grid-template-columns:1fr} .stat-row{grid-template-columns:repeat(2,1fr)} main{padding:16px} }
+@media(max-width:600px){ header{padding:0 16px} .header-right .live-badge{display:none} }
 </style>
 </head>
 <body>
@@ -104,4 +107,465 @@ tbody tr:last-child td { border-bottom:none; }
 <nav>
   <button class="tab active" onclick="switchTab('slate',this)">Today's Slate</button>
   <button class="tab" onclick="switchTab('charts',this)">Performance</button>
-  <button class="tab" onclick="switchTab('metrics',thi
+  <button class="tab" onclick="switchTab('metrics',this)">Backtest</button>
+</nav>
+
+<main>
+
+  <!-- SLATE PAGE -->
+  <div id="page-slate" class="page active">
+    <div class="stat-row">
+      <div class="stat-card" style="--accent:var(--blue)">
+        <div class="stat-label">Bets Today</div>
+        <div class="stat-value" id="s-n-bets">—</div>
+        <div class="stat-sub" id="s-conf-split">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--green)">
+        <div class="stat-label">Avg Edge</div>
+        <div class="stat-value pos" id="s-avg-edge">—</div>
+        <div class="stat-sub">vs market no-vig</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--yellow)">
+        <div class="stat-label">Total at Risk</div>
+        <div class="stat-value" id="s-total-risk">—</div>
+        <div class="stat-sub">of bankroll</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--purple)">
+        <div class="stat-label">Top Signal</div>
+        <div class="stat-value" id="s-signals" style="font-size:14px;margin-top:4px">—</div>
+        <div class="stat-sub" id="s-top-signal">—</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">BET SLATE</span>
+        <span class="panel-meta" id="slate-ts">—</span>
+      </div>
+      <div id="slate-body">
+        <div class="loading"><div class="spinner"></div> Loading slate…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS PAGE -->
+  <div id="page-charts" class="page">
+    <div class="stat-row">
+      <div class="stat-card" style="--accent:var(--green)">
+        <div class="stat-label">All-Time ROI</div>
+        <div class="stat-value" id="p-roi">—</div>
+        <div class="stat-sub" id="p-total-pnl">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--blue)">
+        <div class="stat-label">Hit Rate</div>
+        <div class="stat-value" id="p-hit">—</div>
+        <div class="stat-sub" id="p-bets">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--cyan)">
+        <div class="stat-label">CLV Mean</div>
+        <div class="stat-value" id="p-clv">—</div>
+        <div class="stat-sub">closing line value</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--yellow)">
+        <div class="stat-label">Sharpe Ratio</div>
+        <div class="stat-value" id="p-sharpe">—</div>
+        <div class="stat-sub">annualized</div>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">BANKROLL CURVE</span><span class="panel-meta">$10,000 start</span></div>
+        <div class="chart-wrap"><canvas id="bankroll-chart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">SIGNAL ROI</span></div>
+        <div id="signal-bars-wrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">ROI BY MONTH</span></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="monthly-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- METRICS PAGE -->
+  <div id="page-metrics" class="page">
+    <div class="stat-row">
+      <div class="stat-card" style="--accent:var(--green)">
+        <div class="stat-label">ROI</div>
+        <div class="stat-value" id="bt-roi">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--blue)">
+        <div class="stat-label">Profit Factor</div>
+        <div class="stat-value" id="bt-pf">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--red)">
+        <div class="stat-label">Max Drawdown</div>
+        <div class="stat-value neg" id="bt-dd">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--cyan)">
+        <div class="stat-label">CLV Positive</div>
+        <div class="stat-value" id="bt-clvp">—</div>
+      </div>
+    </div>
+    <div class="metrics-grid">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">BY MARKET</span></div>
+        <div id="by-market-wrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">BY SIGNAL</span></div>
+        <div id="by-signal-wrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">MULTI-SIGNAL CONVERGENCE</span></div>
+        <div id="multi-signal-wrap"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const GITHUB_USER   = "childersjac-max";
+const GITHUB_REPO   = "Line-Tracker-Model";
+const GITHUB_BRANCH = "main";
+const RAW = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}`;
+
+let bankrollChart = null, monthlyChart = null;
+let chartsLoaded = false, metricsLoaded = false;
+
+// ── Fetch helpers ─────────────────────────────────────────────────────
+async function fetchCSV(path) {
+  const r = await fetch(`${RAW}/${path}?t=${Date.now()}`);
+  if (!r.ok) throw new Error(`${r.status}: ${path}`);
+  const text = await r.text();
+  const lines = text.trim().split('\n');
+  if (lines.length < 1) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
+  if (lines.length < 2) return [];
+  return lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim().replace(/"/g,''));
+    return obj;
+  });
+}
+
+async function fetchJSON(path) {
+  const r = await fetch(`${RAW}/${path}?t=${Date.now()}`);
+  if (!r.ok) throw new Error(`${r.status}: ${path}`);
+  return r.json();
+}
+
+function castNum(rows, fields) {
+  return rows.map(r => {
+    const o = {...r};
+    fields.forEach(f => {
+      if (o[f] !== '' && o[f] != null) {
+        const n = parseFloat(o[f]);
+        if (!isNaN(n)) o[f] = n;
+      }
+    });
+    return o;
+  });
+}
+
+const fmt    = (n,d=1) => (n==null||isNaN(n)) ? '—' : Number(n).toFixed(d);
+const fmtPct = (n,d=1) => (n==null||isNaN(n)) ? '—' : (Number(n)>=0?'+':'')+Number(n).toFixed(d)+'%';
+const fmtUSD = n => (n==null||isNaN(n)) ? '—' : '$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+const cc     = n => Number(n)>0?'pos':Number(n)<0?'neg':'';
+
+// ── Tab switching ─────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'charts'  && !chartsLoaded)  loadCharts();
+  if (name === 'metrics' && !metricsLoaded) loadMetrics();
+}
+
+// ── Slate ─────────────────────────────────────────────────────────────
+async function loadSlate() {
+  document.getElementById('slate-body').innerHTML =
+    '<div class="loading"><div class="spinner"></div> Loading slate…</div>';
+  try {
+    const rows = await fetchCSV('pipeline_output/bet_slate_latest.csv');
+    const bets = castNum(rows, ['model_prob','fair_prob','edge_pct','ev_pct',
+                                 'bet_pct','bet_usd','american_odds','n_signals']);
+
+    const now = new Date();
+    document.getElementById('last-updated').textContent =
+      `Updated ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} ET`;
+    document.getElementById('slate-ts').textContent =
+      now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+    // Filter out empty rows
+    const validBets = bets.filter(b => b.sport && b.sport.trim() !== '');
+
+    document.getElementById('s-n-bets').textContent = validBets.length;
+
+    if (validBets.length > 0) {
+      const avg = validBets.reduce((s,b)=>s+(parseFloat(b.edge_pct)||0),0)/validBets.length;
+      document.getElementById('s-avg-edge').textContent = `+${avg.toFixed(2)}%`;
+      document.getElementById('s-total-risk').textContent =
+        fmtUSD(validBets.reduce((s,b)=>s+(parseFloat(b.bet_usd)||0),0));
+      const hi = validBets.filter(b=>b.confidence==='HIGH').length;
+      const md = validBets.filter(b=>b.confidence==='MEDIUM').length;
+      document.getElementById('s-conf-split').textContent = `${hi} high · ${md} medium`;
+      const allSigs = validBets.flatMap(b=>(b.signals||'').split(', ').filter(Boolean));
+      const counts = {};
+      allSigs.forEach(s=>counts[s]=(counts[s]||0)+1);
+      const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+      document.getElementById('s-signals').textContent = top ? top[0].replace(/_/g,' ') : '—';
+      document.getElementById('s-top-signal').textContent = top ? `${top[1]} bets` : '—';
+    } else {
+      document.getElementById('s-avg-edge').textContent = '—';
+      document.getElementById('s-total-risk').textContent = '—';
+      document.getElementById('s-conf-split').textContent = '—';
+      document.getElementById('s-signals').textContent = '—';
+    }
+
+    if (validBets.length === 0) {
+      document.getElementById('slate-body').innerHTML = `
+        <div class="empty">
+          <span class="empty-icon">📊</span>
+          No edges found in today's slate.<br>
+          <span style="color:var(--dim)">The model is scanning ${Object.keys({NBA:1,MLB:1,NHL:1,CFB:1}).length} sports for line movement edges.</span><br>
+          <span style="color:var(--dim)">Scraper runs every 30 min · Check back soon.</span>
+        </div>`;
+      return;
+    }
+
+    const sigTag = s => {
+      const map = {
+        'SHARP_MONEY':           ['SHARP','sig-SHARP'],
+        'REVERSE_LINE_MOVEMENT': ['RLM',  'sig-RLM'],
+        'PUBLIC_FADE':           ['FADE', 'sig-FADE'],
+        'CLV_MODEL':             ['CLV',  'sig-CLV'],
+      };
+      const [l,c] = map[s] || [s.slice(0,5),'sig-CLV'];
+      return `<span class="sig ${c}">${l}</span>`;
+    };
+
+    const rowsHtml = validBets.map(b => {
+      const odds = parseFloat(b.american_odds)||0;
+      const oddsStr = b.american_odds_display || (odds>0?`+${Math.round(odds)}`:`${Math.round(odds)}`);
+      const edge = parseFloat(b.edge_pct)||0;
+      const ec = edge>=5?'pos':edge>=3?'neu':'neg';
+      const sigs = (b.signals||'CLV_MODEL').split(', ').filter(Boolean).map(sigTag).join('');
+      return `<tr>
+        <td><strong>${b.sport||'—'}</strong></td>
+        <td><span class="market-tag">${(b.market||'').toUpperCase()}</span></td>
+        <td>${b.side||'—'}</td>
+        <td><span class="odds-tag">${oddsStr}</span></td>
+        <td>${((parseFloat(b.model_prob)||0)*100).toFixed(1)}%</td>
+        <td>${((parseFloat(b.fair_prob)||0)*100).toFixed(1)}%</td>
+        <td class="${ec}"><strong>+${edge.toFixed(2)}%</strong></td>
+        <td>${fmtPct(b.ev_pct)}</td>
+        <td><strong>${fmtUSD(b.bet_usd)}</strong></td>
+        <td><span class="conf conf-${b.confidence||'LOW'}">${b.confidence||'LOW'}</span></td>
+        <td><div class="signals">${sigs}</div></td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('slate-body').innerHTML = `
+      <div class="bet-table-wrap"><table>
+        <thead><tr>
+          <th>Sport</th><th>Market</th><th>Side</th><th>Odds</th>
+          <th>Model%</th><th>Fair%</th><th>Edge</th><th>EV%</th>
+          <th>Bet$</th><th>Conf</th><th>Signals</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table></div>`;
+
+  } catch(e) {
+    document.getElementById('slate-body').innerHTML = `
+      <div class="empty">
+        <span class="empty-icon">⚙️</span>
+        Workflows are running — data will appear shortly.<br>
+        <span style="color:var(--dim);font-size:10px">${e.message}</span><br>
+        <span style="color:var(--dim)">The bootstrap workflow seeds 3 days of historical data.</span>
+      </div>`;
+  }
+}
+
+// ── Charts ────────────────────────────────────────────────────────────
+async function loadCharts() {
+  chartsLoaded = true;
+  try {
+    const [records, metrics] = await Promise.all([
+      fetchCSV('pipeline_output/backtest_results.csv').then(r =>
+        castNum(r, ['bet_usd','pnl','edge','model_prob','american_odds','clv','outcome'])),
+      fetchJSON('pipeline_output/backtest_metrics.json'),
+    ]);
+
+    if (metrics && metrics.roi_pct != null) {
+      const roi = metrics.roi_pct||0;
+      document.getElementById('p-roi').textContent = fmtPct(roi);
+      document.getElementById('p-roi').className = `stat-value ${cc(roi)}`;
+      document.getElementById('p-total-pnl').textContent = `P&L ${fmtUSD(metrics.total_pnl)}`;
+      document.getElementById('p-hit').textContent = `${((metrics.hit_rate||0)*100).toFixed(1)}%`;
+      document.getElementById('p-bets').textContent = `${metrics.n_bets||0} bets`;
+      const clv = metrics.clv_mean||0;
+      document.getElementById('p-clv').textContent = fmtPct(clv*100,3);
+      document.getElementById('p-clv').className = `stat-value ${cc(clv)}`;
+      document.getElementById('p-sharpe').textContent = fmt(metrics.sharpe,2);
+      document.getElementById('p-sharpe').className = `stat-value ${cc(metrics.sharpe)}`;
+    }
+
+    // Bankroll chart
+    if (records.length > 0) {
+      const sorted = [...records].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+      let br = 10000;
+      const pts = [{x:'Start',y:br}];
+      sorted.forEach(r=>{ br+=parseFloat(r.pnl)||0; pts.push({x:r.date||'',y:Math.round(br)}); });
+      const gc = pts[pts.length-1].y>=10000?'#3fb950':'#f85149';
+      if(bankrollChart) bankrollChart.destroy();
+      const ctx1 = document.getElementById('bankroll-chart').getContext('2d');
+      const grad = ctx1.createLinearGradient(0,0,0,240);
+      grad.addColorStop(0,gc+'40'); grad.addColorStop(1,gc+'00');
+      bankrollChart = new Chart(ctx1,{
+        type:'line',
+        data:{labels:pts.map(p=>p.x),datasets:[{data:pts.map(p=>p.y),borderColor:gc,backgroundColor:grad,borderWidth:2,pointRadius:0,fill:true,tension:0.3}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2333',borderColor:'#253047',borderWidth:1,titleColor:'#636e7b',bodyColor:'#cdd9e5',callbacks:{label:c=>`$${c.parsed.y.toLocaleString()}`}}},
+          scales:{
+            x:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9},maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'}},
+            y:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9},callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(255,255,255,0.04)'}}
+          }}
+      });
+    }
+
+    // Monthly ROI chart
+    if (metrics && metrics.monthly_roi && Object.keys(metrics.monthly_roi).length > 0) {
+      const labels = Object.keys(metrics.monthly_roi).sort();
+      const values = labels.map(k=>parseFloat(metrics.monthly_roi[k])||0);
+      const colors = values.map(v=>v>=0?'rgba(63,185,80,0.75)':'rgba(248,81,73,0.75)');
+      if(monthlyChart) monthlyChart.destroy();
+      const ctx2 = document.getElementById('monthly-chart').getContext('2d');
+      monthlyChart = new Chart(ctx2,{
+        type:'bar',
+        data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:colors.map(c=>c.replace('0.75','1')),borderWidth:1,borderRadius:3}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2333',borderColor:'#253047',borderWidth:1,titleColor:'#636e7b',bodyColor:'#cdd9e5',callbacks:{label:c=>`ROI: ${c.parsed.y.toFixed(2)}%`}}},
+          scales:{
+            x:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9}},grid:{color:'rgba(255,255,255,0.04)'}},
+            y:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9},callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(255,255,255,0.04)'}}
+          }}
+      });
+    }
+
+    // Signal bars
+    const bySig = (metrics && metrics.by_signal) ? metrics.by_signal : {};
+    const sigs = Object.entries(bySig);
+    if (!sigs.length) {
+      document.getElementById('signal-bars-wrap').innerHTML =
+        '<div class="empty">No signal data yet — run backtest workflow.</div>';
+    } else {
+      const maxROI = Math.max(...sigs.map(([,s])=>Math.abs(s.roi_pct||0)),1);
+      const colorMap = {'SHARP_MONEY':'var(--blue)','REVERSE_LINE_MOVEMENT':'var(--purple)','PUBLIC_FADE':'var(--cyan)','CLV_MODEL':'var(--muted)'};
+      document.getElementById('signal-bars-wrap').innerHTML =
+        '<div class="signal-bars">' +
+        sigs.map(([name,s])=>{
+          const roi=parseFloat(s.roi_pct)||0;
+          const pct=Math.min(Math.abs(roi)/maxROI*100,100);
+          const color=roi>=0?(colorMap[name]||'var(--green)'):'var(--red)';
+          return `<div class="sig-row">
+            <div class="sig-row-header">
+              <span class="sig-name">${name.replace(/_/g,' ')}</span>
+              <span class="sig-stats">${s.n_bets} bets · ${((s.hit_rate||0)*100).toFixed(1)}% HR · <span class="${cc(roi)}">${fmtPct(roi)}</span></span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          </div>`;
+        }).join('') + '</div>';
+    }
+
+  } catch(e) {
+    document.getElementById('signal-bars-wrap').innerHTML =
+      `<div class="empty">Run the backtest workflow to see performance data.<br><small style="color:var(--dim)">${e.message}</small></div>`;
+  }
+}
+
+// ── Metrics ───────────────────────────────────────────────────────────
+async function loadMetrics() {
+  metricsLoaded = true;
+  try {
+    const m = await fetchJSON('pipeline_output/backtest_metrics.json');
+    if (!m || !m.roi_pct) {
+      throw new Error('No backtest data yet');
+    }
+
+    const roi = m.roi_pct||0;
+    document.getElementById('bt-roi').textContent = fmtPct(roi);
+    document.getElementById('bt-roi').className = `stat-value ${cc(roi)}`;
+    document.getElementById('bt-pf').textContent  = fmt(m.profit_factor,2)+'x';
+    document.getElementById('bt-dd').textContent  = fmtPct(m.max_drawdown_pct);
+    document.getElementById('bt-clvp').textContent = fmt(m.clv_positive_pct,1)+'%';
+
+    const byMarket = m.by_market||{};
+    document.getElementById('by-market-wrap').innerHTML =
+      Object.entries(byMarket).map(([mkt,s])=>`
+        <div class="market-row">
+          <span class="market-name">${mkt}</span>
+          <div class="market-stats">
+            <span>${s.n_bets} bets</span>
+            <span>${((s.hit_rate||0)*100).toFixed(1)}% HR</span>
+            <span class="${cc(s.roi_pct)}">${fmtPct(s.roi_pct)}</span>
+            <span class="${cc(s.clv_mean)}">CLV ${fmtPct((s.clv_mean||0)*100,3)}</span>
+          </div>
+        </div>`).join('') || '<div class="empty">No market data yet.</div>';
+
+    const bySig = m.by_signal||{};
+    document.getElementById('by-signal-wrap').innerHTML =
+      Object.entries(bySig).map(([sig,s])=>`
+        <div class="market-row">
+          <span class="market-name" style="font-size:10px">${sig.replace(/_/g,' ')}</span>
+          <div class="market-stats">
+            <span>${s.n_bets} bets</span>
+            <span>${((s.hit_rate||0)*100).toFixed(1)}% HR</span>
+            <span class="${cc(s.roi_pct)}">${fmtPct(s.roi_pct)}</span>
+          </div>
+        </div>`).join('') || '<div class="empty">No signal data yet.</div>';
+
+    const ms = m.multi_signal||{};
+    document.getElementById('multi-signal-wrap').innerHTML = ms.n_bets ? `
+      <div class="market-row">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font-family:var(--font-mono);font-size:28px;font-weight:700;color:var(--text)">${ms.n_bets}</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">bets with 2+ confirming signals</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--font-mono);font-size:11px;color:var(--muted)">
+          <span style="font-size:20px;font-weight:700" class="${cc(ms.roi_pct)}">${fmtPct(ms.roi_pct)}</span>
+          <span>${((ms.hit_rate||0)*100).toFixed(1)}% hit rate</span>
+        </div>
+      </div>` : '<div class="empty">Not enough multi-signal data yet.</div>';
+
+  } catch(e) {
+    const msg = '<div class="empty">Run the backtest workflow first.<br><small style="color:var(--dim)">Actions → 4. Backtest → Run workflow</small></div>';
+    document.getElementById('by-market-wrap').innerHTML = msg;
+    document.getElementById('by-signal-wrap').innerHTML = msg;
+    document.getElementById('multi-signal-wrap').innerHTML = msg;
+  }
+}
+
+// ── Refresh ───────────────────────────────────────────────────────────
+function refreshAll() {
+  chartsLoaded = false;
+  metricsLoaded = false;
+  loadSlate();
+  const active = document.querySelector('.tab.active');
+  if (active?.textContent.includes('Performance')) loadCharts();
+  if (active?.textContent.includes('Backtest'))    loadMetrics();
+}
+
+// ── Auto-refresh every 5 minutes ──────────────────────────────────────
+setInterval(() => {
+  loadSlate();
+}, 5 * 60 * 1000);
+
+// ── Boot ──────────────────────────────────────────────────────────────
+loadSlate();
+</script>
+</body>
+</html>
