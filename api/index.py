@@ -1,6 +1,4 @@
 # api/index.py
-# Single entrypoint for all API routes on Vercel.
-
 import os
 import json
 import csv
@@ -22,7 +20,6 @@ def fetch_raw(path):
         with urllib.request.urlopen(req, timeout=10) as r:
             return r.read().decode("utf-8")
     except Exception as e:
-        print(f"fetch_raw error: {e}")
         return None
 
 
@@ -57,9 +54,20 @@ def cast_numeric(rows, fields):
 class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        path = urlparse(self.path).path.rstrip("/")
+        # Vercel passes the full original path in HTTP_X_VERCEL_DEPLOYMENT_URL
+        # or we can read it from the PATH_INFO environment variable.
+        # Most reliable: check multiple sources.
+        raw_path = self.path or ""
+        parsed   = urlparse(raw_path)
+        path     = parsed.path.rstrip("/").lower()
 
-        if path == "/api/slate":
+        # Vercel sometimes delivers just "/" or "" to the handler
+        # even though the route was /api/slate — check headers too
+        original = self.headers.get("x-invoke-path", "") or ""
+        if original:
+            path = original.rstrip("/").lower()
+
+        if "slate" in path or "slate" in raw_path:
             rows = fetch_csv("pipeline_output/bet_slate_latest.csv")
             rows = cast_numeric(rows, [
                 "model_prob","fair_prob","edge_pct","ev_pct",
@@ -68,11 +76,11 @@ class handler(BaseHTTPRequestHandler):
             ])
             body = json.dumps({"bets": rows, "n_bets": len(rows)})
 
-        elif path == "/api/metrics":
+        elif "metrics" in path or "metrics" in raw_path:
             data = fetch_json_file("pipeline_output/backtest_metrics.json")
             body = json.dumps(data)
 
-        elif path == "/api/history":
+        elif "history" in path or "history" in raw_path:
             rows = fetch_csv("pipeline_output/backtest_results.csv")
             rows = cast_numeric(rows, [
                 "bet_usd","pnl","edge","model_prob",
@@ -80,7 +88,7 @@ class handler(BaseHTTPRequestHandler):
             ])
             body = json.dumps({"records": rows})
 
-        elif path == "/api/status":
+        elif "status" in path or "status" in raw_path:
             from datetime import datetime, timezone
             body = json.dumps({
                 "status": "ok",
@@ -89,7 +97,14 @@ class handler(BaseHTTPRequestHandler):
             })
 
         else:
-            body = json.dumps({"error": f"Unknown route: {path}"})
+            # Debug helper — shows exactly what Vercel is sending
+            body = json.dumps({
+                "debug": True,
+                "raw_path": raw_path,
+                "parsed_path": path,
+                "x_invoke_path": self.headers.get("x-invoke-path", ""),
+                "all_headers": dict(self.headers),
+            })
 
         encoded = body.encode()
         self.send_response(200)
