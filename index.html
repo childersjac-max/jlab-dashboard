@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J LAB — Line Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#080c10; --surface:#0d1117; --border:#1c2333; --border2:#253047;
+  --text:#cdd9e5; --muted:#636e7b; --dim:#3d4b5c;
+  --green:#3fb950; --green-dim:#1a3d22; --red:#f85149; --red-dim:#3d1a1a;
+  --yellow:#d29922; --yellow-dim:#3d2e0a; --blue:#58a6ff; --blue-dim:#0d2447;
+  --purple:#bc8cff; --cyan:#39c5cf;
+  --font-mono:'Space Mono',monospace; --font-body:'DM Sans',sans-serif;
+  --radius:6px; --radius-lg:10px;
+}
+html { font-size:14px; scroll-behavior:smooth; }
+body {
+  background:var(--bg); color:var(--text); font-family:var(--font-body);
+  font-weight:400; line-height:1.5; min-height:100vh; overflow-x:hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.012) 2px,rgba(255,255,255,0.012) 4px);
+  pointer-events:none; z-index:9999;
+}
+.shell { display:grid; grid-template-rows:56px auto 1fr; min-height:100vh; }
+header {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; position:sticky; top:0; z-index:100;
+}
+.logo {
+  font-family:var(--font-mono); font-size:13px; font-weight:700;
+  letter-spacing:0.15em; color:var(--blue); text-transform:uppercase;
+  display:flex; align-items:center; gap:10px;
+}
+.logo-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--green);
+  box-shadow:0 0 8px var(--green); animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.header-meta { display:flex; align-items:center; gap:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+.status-badge { display:flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:11px; }
+.status-badge.live { border-color:var(--green); color:var(--green); }
+.status-badge.live .dot { background:var(--green); box-shadow:0 0 6px var(--green); }
+.dot { width:6px; height:6px; border-radius:50%; }
+nav { display:flex; gap:2px; padding:0 24px; background:var(--surface); border-bottom:1px solid var(--border); }
+.tab {
+  padding:12px 18px; font-family:var(--font-mono); font-size:11px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);
+  cursor:pointer; border:none; background:none; border-bottom:2px solid transparent;
+  transition:all 0.15s; position:relative; top:1px;
+}
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+main { padding:24px; max-width:1400px; margin:0 auto; width:100%; }
+.page { display:none; }
+.page.active { display:block; }
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:16px 18px;
+  position:relative; overflow:hidden; transition:border-color 0.15s;
+}
+.stat-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:var(--accent,var(--blue)); opacity:0.7;
+}
+.stat-card:hover { border-color:var(--border2); }
+.stat-label { font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+.stat-value { font-family:var(--font-mono); font-size:22px; font-weight:700; color:var(--text); line-height:1; }
+.stat-sub { font-size:11px; color:var(--muted); margin-top:4px; }
+.pos { color:var(--green)!important; }
+.neg { color:var(--red)!important; }
+.neu { color:var(--yellow)!important; }
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:20px; }
+.panel-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+.panel-title { font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); }
+.panel-meta { font-family:var(--font-mono); font-size:10px; color:var(--muted); }
+.bet-table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12.5px; }
+thead tr { background:rgba(255,255,255,0.02); }
+th { font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+td { padding:11px 14px; border-bottom:1px solid rgba(28,35,51,0.6); vertical-align:middle; white-space:nowrap; }
+tbody tr { transition:background 0.1s; }
+tbody tr:hover { background:rgba(88,166,255,0.04); }
+tbody tr:last-child td { border-bottom:none; }
+.conf { display:inline-block; padding:2px 8px; border-radius:4px; font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:0.05em; }
+.conf-HIGH   { background:var(--green-dim); color:var(--green); border:1px solid rgba(63,185,80,0.3); }
+.conf-MEDIUM { background:var(--yellow-dim); color:var(--yellow); border:1px solid rgba(210,153,34,0.3); }
+.conf-LOW    { background:rgba(255,255,255,0.04); color:var(--muted); border:1px solid var(--border); }
+.signals { display:flex; gap:4px; flex-wrap:wrap; }
+.sig { display:inline-block; padding:2px 7px; border-radius:3px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.06em; }
+.sig-SHARP { background:var(--blue-dim); color:var(--blue); border:1px solid rgba(88,166,255,0.25); }
+.sig-RLM   { background:rgba(188,140,255,0.1); color:var(--purple); border:1px solid rgba(188,140,255,0.25); }
+.sig-FADE  { background:rgba(57,197,207,0.1); color:var(--cyan); border:1px solid rgba(57,197,207,0.25); }
+.sig-CLV   { background:rgba(255,255,255,0.05); color:var(--muted); border:1px solid var(--border); }
+.market-tag { display:inline-block; padding:2px 7px; border-radius:3px; font-family:var(--font-mono); font-size:9px; font-weight:700; background:rgba(255,255,255,0.05); color:var(--dim); border:1px solid var(--border); text-transform:uppercase; }
+.odds-tag { font-family:var(--font-mono); font-size:13px; font-weight:700; }
+.charts-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:20px; }
+.chart-wrap { position:relative; padding:18px; height:280px; }
+.chart-wrap canvas { max-height:240px; }
+.signal-bars { padding:16px 18px; display:flex; flex-direction:column; gap:14px; }
+.sig-row { display:flex; flex-direction:column; gap:6px; }
+.sig-row-header { display:flex; justify-content:space-between; align-items:center; }
+.sig-name { font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:0.08em; color:var(--text); }
+.sig-stats { font-family:var(--font-mono); font-size:10px; color:var(--muted); }
+.bar-track { height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:3px; transition:width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.loading { display:flex; align-items:center; justify-content:center; padding:60px; color:var(--muted); font-family:var(--font-mono); font-size:12px; gap:10px; }
+.spinner { width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.empty { padding:48px; text-align:center; color:var(--muted); font-family:var(--font-mono); font-size:12px; }
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+.market-row { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-bottom:1px solid rgba(28,35,51,0.5); font-size:12.5px; }
+.market-row:last-child { border-bottom:none; }
+.market-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); text-transform:uppercase; }
+.market-stats { display:flex; gap:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; background:rgba(88,166,255,0.1); border:1px solid rgba(88,166,255,0.3); border-radius:var(--radius); color:var(--blue); font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.08em; cursor:pointer; transition:all 0.15s; }
+.btn:hover { background:rgba(88,166,255,0.18); border-color:rgba(88,166,255,0.5); }
+@media(max-width:900px) { .charts-grid{grid-template-columns:1fr} .stat-row{grid-template-columns:repeat(2,1fr)} main{padding:16px} }
+@media(max-width:600px) { .stat-row{grid-template-columns:1fr 1fr} header{padding:0 16px} .header-meta{display:none} }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo"><div class="logo-dot"></div>LINE TRACKER MODEL</div>
+    <div class="header-meta">
+      <span id="last-updated">—</span>
+      <div class="status-badge live"><div class="dot"></div>LIVE</div>
+      <button class="btn" onclick="refreshAll()">↺ REFRESH</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab active" onclick="switchTab('slate',this)">Today's Slate</button>
+    <button class="tab" onclick="switchTab('charts',this)">Performance</button>
+    <button class="tab" onclick="switchTab('metrics',this)">Backtest</button>
+  </nav>
+
+  <main>
+
+    <div id="page-slate" class="page active">
+      <div class="stat-row">
+        <div class="stat-card" style="--accent:var(--blue)">
+          <div class="stat-label">Bets Today</div>
+          <div class="stat-value" id="s-n-bets">—</div>
+          <div class="stat-sub" id="s-conf-split">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--green)">
+          <div class="stat-label">Avg Edge</div>
+          <div class="stat-value pos" id="s-avg-edge">—</div>
+          <div class="stat-sub">vs market no-vig</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--yellow)">
+          <div class="stat-label">Total at Risk</div>
+          <div class="stat-value" id="s-total-risk">—</div>
+          <div class="stat-sub" id="s-pct-risk">of bankroll</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--purple)">
+          <div class="stat-label">Signals Firing</div>
+          <div class="stat-value" id="s-signals">—</div>
+          <div class="stat-sub" id="s-top-signal">—</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">BET SLATE</span>
+          <span class="panel-meta" id="slate-ts">—</span>
+        </div>
+        <div id="slate-body"><div class="loading"><div class="spinner"></div> Loading slate…</div></div>
+      </div>
+    </div>
+
+    <div id="page-charts" class="page">
+      <div class="stat-row">
+        <div class="stat-card" style="--accent:var(--green)">
+          <div class="stat-label">All-Time ROI</div>
+          <div class="stat-value" id="p-roi">—</div>
+          <div class="stat-sub" id="p-total-pnl">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--blue)">
+          <div class="stat-label">Hit Rate</div>
+          <div class="stat-value" id="p-hit">—</div>
+          <div class="stat-sub" id="p-bets">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--cyan)">
+          <div class="stat-label">CLV Mean</div>
+          <div class="stat-value" id="p-clv">—</div>
+          <div class="stat-sub">closing line value</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--yellow)">
+          <div class="stat-label">Sharpe Ratio</div>
+          <div class="stat-value" id="p-sharpe">—</div>
+          <div class="stat-sub">annualized</div>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">BANKROLL CURVE</span><span class="panel-meta">normalized to $10,000 start</span></div>
+          <div class="chart-wrap"><canvas id="bankroll-chart"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">SIGNAL ROI</span><span class="panel-meta">by signal type</span></div>
+          <div id="signal-bars-wrap"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">ROI BY MONTH</span><span class="panel-meta">monthly return on investment</span></div>
+        <div class="chart-wrap" style="height:220px"><canvas id="monthly-chart"></canvas></div>
+      </div>
+    </div>
+
+    <div id="page-metrics" class="page">
+      <div class="stat-row">
+        <div class="stat-card" style="--accent:var(--green)">
+          <div class="stat-label">ROI</div>
+          <div class="stat-value" id="bt-roi">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--blue)">
+          <div class="stat-label">Profit Factor</div>
+          <div class="stat-value" id="bt-pf">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--red)">
+          <div class="stat-label">Max Drawdown</div>
+          <div class="stat-value neg" id="bt-dd">—</div>
+        </div>
+        <div class="stat-card" style="--accent:var(--cyan)">
+          <div class="stat-label">CLV Positive</div>
+          <div class="stat-value" id="bt-clvp">—</div>
+        </div>
+      </div>
+      <div class="metrics-grid">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">BY MARKET</span></div>
+          <div id="by-market-wrap"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">BY SIGNAL</span></div>
+          <div id="by-signal-wrap"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">MULTI-SIGNAL CONVERGENCE</span><span class="panel-meta">2+ signals agree</span></div>
+          <div id="multi-signal-wrap"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+let bankrollChart=null, monthlyChart=null, slateData=null, metricsData=null, historyData=null;
+
+function switchTab(name,btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  btn.classList.add('active');
+  if(name==='charts' && !historyData) loadHistory();
+  if(name==='metrics' && !metricsData) loadMetrics();
+}
+
+async function apiFetch(url) {
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function fmt(n,d=1){ return(n==null||isNaN(n))?'—':Number(n).toFixed(d); }
+function fmtPct(n,d=1){ if(n==null||isNaN(n))return'—'; const v=Number(n); return(v>=0?'+':'')+v.toFixed(d)+'%'; }
+function fmtUSD(n){ return(n==null||isNaN(n))?'—':'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0}); }
+function colorClass(n){ if(n==null||isNaN(n))return''; return Number(n)>0?'pos':Number(n)<0?'neg':''; }
+
+async function loadSlate() {
+  try {
+    const data=await apiFetch('/api/slate');
+    slateData=data;
+    renderSlate(data);
+    const d=new Date();
+    document.getElementById('last-updated').textContent=`Updated ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} UTC`;
+  } catch(e) {
+    document.getElementById('slate-body').innerHTML=`<div class="empty">Could not load slate — GitHub Actions may still be running.<br><small style="color:var(--dim)">${e.message}</small></div>`;
+  }
+}
+
+function renderSlate(data) {
+  const bets=data.bets||[];
+  document.getElementById('s-n-bets').textContent=bets.length;
+  if(bets.length>0) {
+    const avgEdge=bets.reduce((s,b)=>s+(parseFloat(b.edge_pct)||0),0)/bets.length;
+    document.getElementById('s-avg-edge').textContent=`+${avgEdge.toFixed(2)}%`;
+    const totalRisk=bets.reduce((s,b)=>s+(parseFloat(b.bet_usd)||0),0);
+    document.getElementById('s-total-risk').textContent=fmtUSD(totalRisk);
+    const hi=bets.filter(b=>b.confidence==='HIGH').length;
+    const md=bets.filter(b=>b.confidence==='MEDIUM').length;
+    document.getElementById('s-conf-split').textContent=`${hi} high · ${md} medium`;
+    const allSigs=bets.flatMap(b=>(b.signals||'').split(', ').filter(Boolean));
+    const sigCounts={};
+    allSigs.forEach(s=>sigCounts[s]=(sigCounts[s]||0)+1);
+    document.getElementById('s-signals').textContent=new Set(allSigs).size;
+    const topSig=Object.entries(sigCounts).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('s-top-signal').textContent=topSig?topSig[0].replace(/_/g,' '):'—';
+  }
+  document.getElementById('slate-ts').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  if(bets.length===0){
+    document.getElementById('slate-body').innerHTML='<div class="empty">No edges found for today\'s slate.<br><small style="color:var(--dim)">Models may need more data or signals are below threshold.</small></div>';
+    return;
+  }
+  const sigTag=sig=>{
+    const map={'SHARP_MONEY':['SHARP','sig-SHARP'],'REVERSE_LINE_MOVEMENT':['RLM','sig-RLM'],'PUBLIC_FADE':['FADE','sig-FADE'],'CLV_MODEL':['CLV','sig-CLV']};
+    const[label,cls]=map[sig]||[sig.slice(0,6),'sig-CLV'];
+    return`<span class="sig ${cls}">${label}</span>`;
+  };
+  const rows=bets.map(b=>{
+    const sigs=(b.signals||'CLV_MODEL').split(', ').filter(Boolean).map(sigTag).join('');
+    const odds=parseFloat(b.american_odds)||0;
+    const oddsDisplay=odds>0?`+${Math.round(odds)}`:`${Math.round(odds)}`;
+    const edgeVal=parseFloat(b.edge_pct)||0;
+    const edgeCls=edgeVal>=5?'pos':edgeVal>=3?'neu':'neg';
+    return`<tr>
+      <td><strong>${b.sport||'—'}</strong></td>
+      <td><span class="market-tag">${(b.market||'').toUpperCase()}</span></td>
+      <td>${b.side||'—'}</td>
+      <td><span class="odds-tag">${oddsDisplay}</span></td>
+      <td>${(parseFloat(b.model_prob)*100||0).toFixed(1)}%</td>
+      <td>${(parseFloat(b.fair_prob)*100||0).toFixed(1)}%</td>
+      <td class="${edgeCls}"><strong>+${edgeVal.toFixed(2)}%</strong></td>
+      <td>${fmtPct(b.ev_pct)}</td>
+      <td><strong>${fmtUSD(b.bet_usd)}</strong></td>
+      <td><span class="conf conf-${b.confidence||'LOW'}">${b.confidence||'LOW'}</span></td>
+      <td><div class="signals">${sigs}</div></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('slate-body').innerHTML=`
+    <div class="bet-table-wrap"><table>
+      <thead><tr>
+        <th>Sport</th><th>Market</th><th>Side</th><th>Odds</th>
+        <th>Model%</th><th>Fair%</th><th>Edge</th><th>EV%</th>
+        <th>Bet$</th><th>Conf</th><th>Signals</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+async function loadHistory() {
+  try {
+    const[histJson,metricsJson]=await Promise.all([apiFetch('/api/history'),apiFetch('/api/metrics')]);
+    historyData=histJson; metricsData=metricsJson;
+    renderPerfStats(metricsJson);
+    renderBankrollChart(histJson.records||[]);
+    renderMonthlyChart(metricsJson);
+    renderSignalBars(metricsJson);
+  } catch(e){ console.error('loadHistory:',e); }
+}
+
+function renderPerfStats(m) {
+  if(!m||!m.roi_pct) return;
+  const roi=m.roi_pct||0;
+  document.getElementById('p-roi').textContent=fmtPct(roi);
+  document.getElementById('p-roi').className=`stat-value ${colorClass(roi)}`;
+  document.getElementById('p-total-pnl').textContent=`P&L ${fmtUSD(m.total_pnl)}`;
+  document.getElementById('p-hit').textContent=`${((m.hit_rate||0)*100).toFixed(1)}%`;
+  document.getElementById('p-bets').textContent=`${m.n_bets||0} bets`;
+  const clv=m.clv_mean||0;
+  document.getElementById('p-clv').textContent=fmtPct(clv*100,3);
+  document.getElementById('p-clv').className=`stat-value ${colorClass(clv)}`;
+  document.getElementById('p-sharpe').textContent=fmt(m.sharpe,2);
+  document.getElementById('p-sharpe').className=`stat-value ${colorClass(m.sharpe)}`;
+}
+
+function renderBankrollChart(records) {
+  if(!records.length) return;
+  const sorted=[...records].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  let br=10000;
+  const points=[{x:sorted[0]?.date||'Start',y:br}];
+  sorted.forEach(r=>{ br+=parseFloat(r.pnl)||0; points.push({x:r.date||'',y:Math.round(br)}); });
+  const labels=points.map(p=>p.x), values=points.map(p=>p.y);
+  const gc=values[values.length-1]>=10000?'#3fb950':'#f85149';
+  if(bankrollChart) bankrollChart.destroy();
+  const ctx=document.getElementById('bankroll-chart').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,240);
+  grad.addColorStop(0,gc+'40'); grad.addColorStop(1,gc+'00');
+  bankrollChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data:values,borderColor:gc,backgroundColor:grad,borderWidth:2,pointRadius:0,pointHoverRadius:4,fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2333',borderColor:'#253047',borderWidth:1,titleColor:'#636e7b',bodyColor:'#cdd9e5',callbacks:{label:ctx=>`$${ctx.parsed.y.toLocaleString()}`}}},scales:{x:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9},maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9},callback:v=>'$'+v.toLocaleString()},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+function renderMonthlyChart(m) {
+  const monthly=m.monthly_roi||{};
+  if(!Object.keys(monthly).length) return;
+  const labels=Object.keys(monthly).sort(), values=labels.map(k=>parseFloat(monthly[k])||0);
+  const colors=values.map(v=>v>=0?'rgba(63,185,80,0.75)':'rgba(248,81,73,0.75)');
+  const borderColors=values.map(v=>v>=0?'#3fb950':'#f85149');
+  if(monthlyChart) monthlyChart.destroy();
+  const ctx=document.getElementById('monthly-chart').getContext('2d');
+  monthlyChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:borderColors,borderWidth:1,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2333',borderColor:'#253047',borderWidth:1,titleColor:'#636e7b',bodyColor:'#cdd9e5',callbacks:{label:ctx=>`ROI: ${ctx.parsed.y.toFixed(2)}%`}}},scales:{x:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#636e7b',font:{family:'Space Mono',size:9},callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+function renderSignalBars(m) {
+  const by_signal=m.by_signal||{};
+  const sigs=Object.entries(by_signal);
+  if(!sigs.length){ document.getElementById('signal-bars-wrap').innerHTML='<div class="empty">No signal data yet.</div>'; return; }
+  const maxROI=Math.max(...sigs.map(([,s])=>Math.abs(s.roi_pct||0)),1);
+  const colorMap={'SHARP_MONEY':'var(--blue)','REVERSE_LINE_MOVEMENT':'var(--purple)','PUBLIC_FADE':'var(--cyan)','CLV_MODEL':'var(--muted)'};
+  const html=sigs.map(([name,stats])=>{
+    const roi=parseFloat(stats.roi_pct)||0;
+    const pct=Math.min(Math.abs(roi)/maxROI*100,100);
+    const color=roi>=0?(colorMap[name]||'var(--green)'):'var(--red)';
+    return`<div class="sig-row">
+      <div class="sig-row-header">
+        <span class="sig-name">${name.replace(/_/g,' ')}</span>
+        <span class="sig-stats">${stats.n_bets} bets · ${((stats.hit_rate||0)*100).toFixed(1)}% HR · <span class="${colorClass(roi)}">${fmtPct(roi)}</span></span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('signal-bars-wrap').innerHTML=`<div class="signal-bars">${html}</div>`;
+}
+
+async function loadMetrics() {
+  try {
+    const m=await apiFetch('/api/metrics');
+    metricsData=m;
+    renderMetricsPage(m);
+  } catch(e){ console.error('loadMetrics:',e); }
+}
+
+function renderMetricsPage(m) {
+  if(!m||!m.roi_pct) return;
+  const roi=m.roi_pct||0;
+  document.getElementById('bt-roi').textContent=fmtPct(roi);
+  document.getElementById('bt-roi').className=`stat-value ${colorClass(roi)}`;
+  document.getElementById('bt-pf').textContent=fmt(m.profit_factor,2)+'x';
+  document.getElementById('bt-dd').textContent=fmtPct(m.max_drawdown_pct);
+  document.getElementById('bt-clvp').textContent=fmt(m.clv_positive_pct,1)+'%';
+  const byMarket=m.by_market||{};
+  document.getElementById('by-market-wrap').innerHTML=Object.entries(byMarket).map(([mkt,s])=>`
+    <div class="market-row">
+      <span class="market-name">${mkt}</span>
+      <div class="market-stats">
+        <span>${s.n_bets} bets</span>
+        <span>${((s.hit_rate||0)*100).toFixed(1)}% HR</span>
+        <span class="${colorClass(s.roi_pct)}">${fmtPct(s.roi_pct)}</span>
+        <span class="${colorClass(s.clv_mean)}">CLV ${fmtPct((s.clv_mean||0)*100,3)}</span>
+      </div>
+    </div>`).join('')||'<div class="empty">No data</div>';
+  const bySig=m.by_signal||{};
+  document.getElementById('by-signal-wrap').innerHTML=Object.entries(bySig).map(([sig,s])=>`
+    <div class="market-row">
+      <span class="market-name" style="font-size:10px">${sig.replace(/_/g,' ')}</span>
+      <div class="market-stats">
+        <span>${s.n_bets} bets</span>
+        <span>${((s.hit_rate||0)*100).toFixed(1)}% HR</span>
+        <span class="${colorClass(s.roi_pct)}">${fmtPct(s.roi_pct)}</span>
+      </div>
+    </div>`).join('')||'<div class="empty">No data yet</div>';
+  const ms=m.multi_signal||{};
+  document.getElementById('multi-signal-wrap').innerHTML=ms.n_bets?`
+    <div class="market-row">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--text)">${ms.n_bets}</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">bets with 2+ confirming signals</span>
+      </div>
+      <div class="market-stats" style="flex-direction:column;align-items:flex-end;gap:4px">
+        <span style="font-size:18px;font-family:var(--font-mono);font-weight:700" class="${colorClass(ms.roi_pct)}">${fmtPct(ms.roi_pct)}</span>
+        <span>${((ms.hit_rate||0)*100).toFixed(1)}% hit rate</span>
+      </div>
+    </div>`:'<div class="empty">Not enough data yet</div>';
+}
+
+function refreshAll() {
+  slateData=metricsData=historyData=null;
+  document.getElementById('slate-body').innerHTML='<div class="loading"><div class="spinner"></div> Loading…</div>';
+  loadSlate();
+  const active=document.querySelector('.tab.active');
+  if(active?.textContent.includes('Performance')) loadHistory();
+  else if(active?.textContent.includes('Backtest')) loadMetrics();
+}
+
+loadSlate();
+</script>
+</body>
+</html>
