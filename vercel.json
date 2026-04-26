@@ -1,9 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/*.py", "use": "@vercel/python" },
-    { "src": "index.html", "use": "@vercel/static" }
-  ],
   "routes": [
     { "src": "/api/slate",   "dest": "/api/slate.py"   },
     { "src": "/api/metrics", "dest": "/api/metrics.py" },
