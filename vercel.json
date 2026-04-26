@@ -1,16 +1,6 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "/api/slate",   "dest": "/api/index.py" },
-    { "src": "/api/metrics", "dest": "/api/index.py" },
-    { "src": "/api/history", "dest": "/api/index.py" },
-    { "src": "/api/status",  "dest": "/api/index.py" },
-    { "src": "/",            "dest": "/index.html"   },
-    { "src": "/(.*)",        "dest": "/index.html"   }
-  ],
-  "env": {
-    "GITHUB_USER":   "childersjac-max",
-    "GITHUB_REPO":   "Line-Tracker-Model",
-    "GITHUB_BRANCH": "main"
-  }
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.py" }
+  ]
 }
