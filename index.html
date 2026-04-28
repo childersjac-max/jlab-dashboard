@@ -88,7 +88,6 @@ tbody tr:last-child td { border-bottom:none; }
 .market-row:last-child { border-bottom:none; }
 .market-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); text-transform:uppercase; }
 .market-stats { display:flex; gap:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
-.info-bar { background:rgba(88,166,255,0.06); border:1px solid rgba(88,166,255,0.15); border-radius:var(--radius); padding:10px 16px; margin-bottom:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); display:flex; align-items:center; gap:8px; }
 @media(max-width:900px){ .charts-grid{grid-template-columns:1fr} .stat-row{grid-template-columns:repeat(2,1fr)} main{padding:16px} }
 @media(max-width:600px){ header{padding:0 16px} .header-right .live-badge{display:none} }
 </style>
@@ -112,7 +111,6 @@ tbody tr:last-child td { border-bottom:none; }
 
 <main>
 
-  <!-- SLATE PAGE -->
   <div id="page-slate" class="page active">
     <div class="stat-row">
       <div class="stat-card" style="--accent:var(--blue)">
@@ -147,7 +145,6 @@ tbody tr:last-child td { border-bottom:none; }
     </div>
   </div>
 
-  <!-- CHARTS PAGE -->
   <div id="page-charts" class="page">
     <div class="stat-row">
       <div class="stat-card" style="--accent:var(--green)">
@@ -187,7 +184,6 @@ tbody tr:last-child td { border-bottom:none; }
     </div>
   </div>
 
-  <!-- METRICS PAGE -->
   <div id="page-metrics" class="page">
     <div class="stat-row">
       <div class="stat-card" style="--accent:var(--green)">
@@ -230,15 +226,25 @@ const GITHUB_USER   = "childersjac-max";
 const GITHUB_REPO   = "Line-Tracker-Model";
 const GITHUB_BRANCH = "main";
 const RAW = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}`;
+const API = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents`;
 
 let bankrollChart = null, monthlyChart = null;
 let chartsLoaded = false, metricsLoaded = false;
 
-// ── Fetch helpers ─────────────────────────────────────────────────────
 async function fetchCSV(path) {
-  const r = await fetch(`${RAW}/${path}?t=${Date.now()}`);
-  if (!r.ok) throw new Error(`${r.status}: ${path}`);
-  const text = await r.text();
+  let text;
+  try {
+    const r = await fetch(`${RAW}/${path}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${r.status}`);
+    text = await r.text();
+  } catch(e) {
+    const r = await fetch(`${API}/${path}`, {
+      headers: { 'Accept': 'application/vnd.github.v3.raw' },
+      cache: 'no-store'
+    });
+    if (!r.ok) throw new Error(`${r.status}: ${path}`);
+    text = await r.text();
+  }
   const lines = text.trim().split('\n');
   if (lines.length < 1) return [];
   const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''));
@@ -246,15 +252,24 @@ async function fetchCSV(path) {
   return lines.slice(1).map(line => {
     const vals = line.split(',');
     const obj = {};
-    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim().replace(/"/g,''));
+    headers.forEach((h,i) => obj[h] = (vals[i]||'').trim().replace(/"/g,''));
     return obj;
   });
 }
 
 async function fetchJSON(path) {
-  const r = await fetch(`${RAW}/${path}?t=${Date.now()}`);
-  if (!r.ok) throw new Error(`${r.status}: ${path}`);
-  return r.json();
+  try {
+    const r = await fetch(`${RAW}/${path}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${r.status}`);
+    return r.json();
+  } catch(e) {
+    const r = await fetch(`${API}/${path}`, {
+      headers: { 'Accept': 'application/vnd.github.v3.raw' },
+      cache: 'no-store'
+    });
+    if (!r.ok) throw new Error(`${r.status}: ${path}`);
+    return r.json();
+  }
 }
 
 function castNum(rows, fields) {
@@ -275,7 +290,6 @@ const fmtPct = (n,d=1) => (n==null||isNaN(n)) ? '—' : (Number(n)>=0?'+':'')+Nu
 const fmtUSD = n => (n==null||isNaN(n)) ? '—' : '$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const cc     = n => Number(n)>0?'pos':Number(n)<0?'neg':'';
 
-// ── Tab switching ─────────────────────────────────────────────────────
 function switchTab(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -285,7 +299,6 @@ function switchTab(name, btn) {
   if (name === 'metrics' && !metricsLoaded) loadMetrics();
 }
 
-// ── Slate ─────────────────────────────────────────────────────────────
 async function loadSlate() {
   document.getElementById('slate-body').innerHTML =
     '<div class="loading"><div class="spinner"></div> Loading slate…</div>';
@@ -293,16 +306,13 @@ async function loadSlate() {
     const rows = await fetchCSV('pipeline_output/bet_slate_latest.csv');
     const bets = castNum(rows, ['model_prob','fair_prob','edge_pct','ev_pct',
                                  'bet_pct','bet_usd','american_odds','n_signals']);
+    const validBets = bets.filter(b => b.sport && b.sport.trim() !== '');
 
     const now = new Date();
     document.getElementById('last-updated').textContent =
-      `Updated ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} ET`;
+      `Updated ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     document.getElementById('slate-ts').textContent =
       now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
-
-    // Filter out empty rows
-    const validBets = bets.filter(b => b.sport && b.sport.trim() !== '');
-
     document.getElementById('s-n-bets').textContent = validBets.length;
 
     if (validBets.length > 0) {
@@ -319,11 +329,6 @@ async function loadSlate() {
       const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
       document.getElementById('s-signals').textContent = top ? top[0].replace(/_/g,' ') : '—';
       document.getElementById('s-top-signal').textContent = top ? `${top[1]} bets` : '—';
-    } else {
-      document.getElementById('s-avg-edge').textContent = '—';
-      document.getElementById('s-total-risk').textContent = '—';
-      document.getElementById('s-conf-split').textContent = '—';
-      document.getElementById('s-signals').textContent = '—';
     }
 
     if (validBets.length === 0) {
@@ -331,7 +336,6 @@ async function loadSlate() {
         <div class="empty">
           <span class="empty-icon">📊</span>
           No edges found in today's slate.<br>
-          <span style="color:var(--dim)">The model is scanning ${Object.keys({NBA:1,MLB:1,NHL:1,CFB:1}).length} sports for line movement edges.</span><br>
           <span style="color:var(--dim)">Scraper runs every 30 min · Check back soon.</span>
         </div>`;
       return;
@@ -339,18 +343,18 @@ async function loadSlate() {
 
     const sigTag = s => {
       const map = {
-        'SHARP_MONEY':           ['SHARP','sig-SHARP'],
-        'REVERSE_LINE_MOVEMENT': ['RLM',  'sig-RLM'],
-        'PUBLIC_FADE':           ['FADE', 'sig-FADE'],
-        'CLV_MODEL':             ['CLV',  'sig-CLV'],
+        'SHARP_MONEY':['SHARP','sig-SHARP'],
+        'REVERSE_LINE_MOVEMENT':['RLM','sig-RLM'],
+        'PUBLIC_FADE':['FADE','sig-FADE'],
+        'CLV_MODEL':['CLV','sig-CLV'],
       };
-      const [l,c] = map[s] || [s.slice(0,5),'sig-CLV'];
+      const [l,c] = map[s]||[s.slice(0,5),'sig-CLV'];
       return `<span class="sig ${c}">${l}</span>`;
     };
 
     const rowsHtml = validBets.map(b => {
       const odds = parseFloat(b.american_odds)||0;
-      const oddsStr = b.american_odds_display || (odds>0?`+${Math.round(odds)}`:`${Math.round(odds)}`);
+      const oddsStr = b.american_odds_display||(odds>0?`+${Math.round(odds)}`:`${Math.round(odds)}`);
       const edge = parseFloat(b.edge_pct)||0;
       const ec = edge>=5?'pos':edge>=3?'neu':'neg';
       const sigs = (b.signals||'CLV_MODEL').split(', ').filter(Boolean).map(sigTag).join('');
@@ -383,20 +387,19 @@ async function loadSlate() {
     document.getElementById('slate-body').innerHTML = `
       <div class="empty">
         <span class="empty-icon">⚙️</span>
-        Workflows are running — data will appear shortly.<br>
+        Could not load slate.<br>
         <span style="color:var(--dim);font-size:10px">${e.message}</span><br>
-        <span style="color:var(--dim)">The bootstrap workflow seeds 3 days of historical data.</span>
+        <span style="color:var(--dim)">Check that Line-Tracker-Model workflows have run.</span>
       </div>`;
   }
 }
 
-// ── Charts ────────────────────────────────────────────────────────────
 async function loadCharts() {
   chartsLoaded = true;
   try {
     const [records, metrics] = await Promise.all([
       fetchCSV('pipeline_output/backtest_results.csv').then(r =>
-        castNum(r, ['bet_usd','pnl','edge','model_prob','american_odds','clv','outcome'])),
+        castNum(r,['bet_usd','pnl','edge','model_prob','american_odds','clv','outcome'])),
       fetchJSON('pipeline_output/backtest_metrics.json'),
     ]);
 
@@ -414,7 +417,6 @@ async function loadCharts() {
       document.getElementById('p-sharpe').className = `stat-value ${cc(metrics.sharpe)}`;
     }
 
-    // Bankroll chart
     if (records.length > 0) {
       const sorted = [...records].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
       let br = 10000;
@@ -437,7 +439,6 @@ async function loadCharts() {
       });
     }
 
-    // Monthly ROI chart
     if (metrics && metrics.monthly_roi && Object.keys(metrics.monthly_roi).length > 0) {
       const labels = Object.keys(metrics.monthly_roi).sort();
       const values = labels.map(k=>parseFloat(metrics.monthly_roi[k])||0);
@@ -456,17 +457,16 @@ async function loadCharts() {
       });
     }
 
-    // Signal bars
-    const bySig = (metrics && metrics.by_signal) ? metrics.by_signal : {};
+    const bySig = (metrics&&metrics.by_signal)?metrics.by_signal:{};
     const sigs = Object.entries(bySig);
     if (!sigs.length) {
       document.getElementById('signal-bars-wrap').innerHTML =
-        '<div class="empty">No signal data yet — run backtest workflow.</div>';
+        '<div class="empty">Run the backtest workflow to see signal data.</div>';
     } else {
       const maxROI = Math.max(...sigs.map(([,s])=>Math.abs(s.roi_pct||0)),1);
       const colorMap = {'SHARP_MONEY':'var(--blue)','REVERSE_LINE_MOVEMENT':'var(--purple)','PUBLIC_FADE':'var(--cyan)','CLV_MODEL':'var(--muted)'};
       document.getElementById('signal-bars-wrap').innerHTML =
-        '<div class="signal-bars">' +
+        '<div class="signal-bars">'+
         sigs.map(([name,s])=>{
           const roi=parseFloat(s.roi_pct)||0;
           const pct=Math.min(Math.abs(roi)/maxROI*100,100);
@@ -478,7 +478,7 @@ async function loadCharts() {
             </div>
             <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
           </div>`;
-        }).join('') + '</div>';
+        }).join('')+'</div>';
     }
 
   } catch(e) {
@@ -487,14 +487,11 @@ async function loadCharts() {
   }
 }
 
-// ── Metrics ───────────────────────────────────────────────────────────
 async function loadMetrics() {
   metricsLoaded = true;
   try {
     const m = await fetchJSON('pipeline_output/backtest_metrics.json');
-    if (!m || !m.roi_pct) {
-      throw new Error('No backtest data yet');
-    }
+    if (!m || !m.roi_pct) throw new Error('No backtest data yet');
 
     const roi = m.roi_pct||0;
     document.getElementById('bt-roi').textContent = fmtPct(roi);
@@ -503,9 +500,8 @@ async function loadMetrics() {
     document.getElementById('bt-dd').textContent  = fmtPct(m.max_drawdown_pct);
     document.getElementById('bt-clvp').textContent = fmt(m.clv_positive_pct,1)+'%';
 
-    const byMarket = m.by_market||{};
     document.getElementById('by-market-wrap').innerHTML =
-      Object.entries(byMarket).map(([mkt,s])=>`
+      Object.entries(m.by_market||{}).map(([mkt,s])=>`
         <div class="market-row">
           <span class="market-name">${mkt}</span>
           <div class="market-stats">
@@ -514,11 +510,10 @@ async function loadMetrics() {
             <span class="${cc(s.roi_pct)}">${fmtPct(s.roi_pct)}</span>
             <span class="${cc(s.clv_mean)}">CLV ${fmtPct((s.clv_mean||0)*100,3)}</span>
           </div>
-        </div>`).join('') || '<div class="empty">No market data yet.</div>';
+        </div>`).join('')||'<div class="empty">No market data yet.</div>';
 
-    const bySig = m.by_signal||{};
     document.getElementById('by-signal-wrap').innerHTML =
-      Object.entries(bySig).map(([sig,s])=>`
+      Object.entries(m.by_signal||{}).map(([sig,s])=>`
         <div class="market-row">
           <span class="market-name" style="font-size:10px">${sig.replace(/_/g,' ')}</span>
           <div class="market-stats">
@@ -526,7 +521,7 @@ async function loadMetrics() {
             <span>${((s.hit_rate||0)*100).toFixed(1)}% HR</span>
             <span class="${cc(s.roi_pct)}">${fmtPct(s.roi_pct)}</span>
           </div>
-        </div>`).join('') || '<div class="empty">No signal data yet.</div>';
+        </div>`).join('')||'<div class="empty">No signal data yet.</div>';
 
     const ms = m.multi_signal||{};
     document.getElementById('multi-signal-wrap').innerHTML = ms.n_bets ? `
@@ -542,14 +537,12 @@ async function loadMetrics() {
       </div>` : '<div class="empty">Not enough multi-signal data yet.</div>';
 
   } catch(e) {
-    const msg = '<div class="empty">Run the backtest workflow first.<br><small style="color:var(--dim)">Actions → 4. Backtest → Run workflow</small></div>';
-    document.getElementById('by-market-wrap').innerHTML = msg;
-    document.getElementById('by-signal-wrap').innerHTML = msg;
-    document.getElementById('multi-signal-wrap').innerHTML = msg;
+    const msg = `<div class="empty">Run the backtest workflow first.<br><small style="color:var(--dim)">Actions → 4. Backtest → Run workflow</small></div>`;
+    ['by-market-wrap','by-signal-wrap','multi-signal-wrap'].forEach(id =>
+      document.getElementById(id).innerHTML = msg);
   }
 }
 
-// ── Refresh ───────────────────────────────────────────────────────────
 function refreshAll() {
   chartsLoaded = false;
   metricsLoaded = false;
@@ -559,12 +552,8 @@ function refreshAll() {
   if (active?.textContent.includes('Backtest'))    loadMetrics();
 }
 
-// ── Auto-refresh every 5 minutes ──────────────────────────────────────
-setInterval(() => {
-  loadSlate();
-}, 5 * 60 * 1000);
+setInterval(() => { loadSlate(); }, 5 * 60 * 1000);
 
-// ── Boot ──────────────────────────────────────────────────────────────
 loadSlate();
 </script>
 </body>
