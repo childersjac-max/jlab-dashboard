@@ -29,8 +29,8 @@ header { background:var(--surface); border-bottom:1px solid var(--border); displ
 .live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); }
 .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; background:rgba(88,166,255,0.1); border:1px solid rgba(88,166,255,0.3); border-radius:var(--radius); color:var(--blue); font-family:var(--font-mono); font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s; }
 .btn:hover { background:rgba(88,166,255,0.18); }
-nav { display:flex; gap:2px; padding:0 24px; background:var(--surface); border-bottom:1px solid var(--border); }
-.tab { padding:12px 18px; font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.15s; position:relative; top:1px; }
+nav { display:flex; gap:2px; padding:0 24px; background:var(--surface); border-bottom:1px solid var(--border); overflow-x:auto; }
+.tab { padding:12px 18px; font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; transition:all 0.15s; position:relative; top:1px; white-space:nowrap; }
 .tab:hover { color:var(--text); }
 .tab.active { color:var(--blue); border-bottom-color:var(--blue); }
 main { padding:24px; max-width:1400px; margin:0 auto; }
@@ -49,6 +49,7 @@ main { padding:24px; max-width:1400px; margin:0 auto; }
 .panel-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
 .panel-title { font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); }
 .panel-meta { font-family:var(--font-mono); font-size:10px; color:var(--muted); }
+.panel-body { padding:20px 24px; }
 .bet-table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; font-size:12.5px; }
 thead tr { background:rgba(255,255,255,0.02); }
@@ -88,7 +89,54 @@ tbody tr:last-child td { border-bottom:none; }
 .market-row:last-child { border-bottom:none; }
 .market-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); text-transform:uppercase; }
 .market-stats { display:flex; gap:20px; font-family:var(--font-mono); font-size:11px; color:var(--muted); }
-@media(max-width:900px){ .charts-grid{grid-template-columns:1fr} .stat-row{grid-template-columns:repeat(2,1fr)} main{padding:16px} }
+
+/* ── Info page styles ─────────────────────────────────────── */
+.info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:20px; }
+.info-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.info-section-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.info-section-icon { font-size:16px; }
+.info-section-title { font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); }
+.info-section-body { padding:18px 20px; line-height:1.8; font-size:13px; color:var(--text); }
+.info-section-body p { margin-bottom:12px; color:var(--muted); }
+.info-section-body p:last-child { margin-bottom:0; }
+.info-section-body strong { color:var(--text); }
+.indicator-list { display:flex; flex-direction:column; gap:10px; }
+.indicator-row { display:flex; align-items:flex-start; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.02); border-radius:var(--radius); border:1px solid rgba(255,255,255,0.04); }
+.indicator-rank { font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--muted); min-width:24px; padding-top:2px; }
+.indicator-content { flex:1; }
+.indicator-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.indicator-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+.indicator-badge { display:inline-block; padding:1px 6px; border-radius:3px; font-family:var(--font-mono); font-size:9px; font-weight:700; margin-left:6px; }
+.badge-high   { background:var(--green-dim); color:var(--green); border:1px solid rgba(63,185,80,0.3); }
+.badge-med    { background:var(--yellow-dim); color:var(--yellow); border:1px solid rgba(210,153,34,0.3); }
+.badge-low    { background:rgba(255,255,255,0.04); color:var(--muted); border:1px solid var(--border); }
+.step-list { display:flex; flex-direction:column; gap:12px; }
+.step-row { display:flex; gap:14px; align-items:flex-start; }
+.step-num { width:26px; height:26px; border-radius:50%; background:var(--blue-dim); border:1px solid rgba(88,166,255,0.3); color:var(--blue); font-family:var(--font-mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.step-content { flex:1; }
+.step-title { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.step-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+.blindspot-list { display:flex; flex-direction:column; gap:8px; }
+.blindspot-row { display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:rgba(248,81,73,0.04); border-radius:var(--radius); border:1px solid rgba(248,81,73,0.1); }
+.blindspot-icon { color:var(--red); font-size:13px; flex-shrink:0; padding-top:1px; }
+.blindspot-content { flex:1; }
+.blindspot-title { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); margin-bottom:2px; }
+.blindspot-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+.improve-list { display:flex; flex-direction:column; gap:8px; }
+.improve-row { display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:rgba(63,185,80,0.04); border-radius:var(--radius); border:1px solid rgba(63,185,80,0.1); }
+.improve-icon { color:var(--green); font-size:13px; flex-shrink:0; padding-top:1px; }
+.source-list { display:flex; flex-direction:column; gap:8px; }
+.source-row { display:flex; gap:12px; align-items:flex-start; padding:10px 12px; background:rgba(255,255,255,0.02); border-radius:var(--radius); border:1px solid rgba(255,255,255,0.04); }
+.source-icon { font-size:18px; flex-shrink:0; }
+.source-content { flex:1; }
+.source-name { font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.source-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+.predict-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; }
+.predict-card { padding:12px 14px; background:rgba(88,166,255,0.05); border:1px solid rgba(88,166,255,0.15); border-radius:var(--radius); text-align:center; }
+.predict-sport { font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--blue); margin-bottom:4px; }
+.predict-markets { font-size:11px; color:var(--muted); line-height:1.6; }
+
+@media(max-width:900px){ .charts-grid{grid-template-columns:1fr} .stat-row{grid-template-columns:repeat(2,1fr)} main{padding:16px} .info-grid{grid-template-columns:1fr} }
 @media(max-width:600px){ header{padding:0 16px} .header-right .live-badge{display:none} }
 </style>
 </head>
@@ -107,10 +155,12 @@ tbody tr:last-child td { border-bottom:none; }
   <button class="tab active" onclick="switchTab('slate',this)">Today's Slate</button>
   <button class="tab" onclick="switchTab('charts',this)">Performance</button>
   <button class="tab" onclick="switchTab('metrics',this)">Backtest</button>
+  <button class="tab" onclick="switchTab('info',this)">Model Info</button>
 </nav>
 
 <main>
 
+  <!-- SLATE PAGE -->
   <div id="page-slate" class="page active">
     <div class="stat-row">
       <div class="stat-card" style="--accent:var(--blue)">
@@ -145,6 +195,7 @@ tbody tr:last-child td { border-bottom:none; }
     </div>
   </div>
 
+  <!-- CHARTS PAGE -->
   <div id="page-charts" class="page">
     <div class="stat-row">
       <div class="stat-card" style="--accent:var(--green)">
@@ -184,6 +235,7 @@ tbody tr:last-child td { border-bottom:none; }
     </div>
   </div>
 
+  <!-- METRICS PAGE -->
   <div id="page-metrics" class="page">
     <div class="stat-row">
       <div class="stat-card" style="--accent:var(--green)">
@@ -216,6 +268,424 @@ tbody tr:last-child td { border-bottom:none; }
         <div class="panel-header"><span class="panel-title">MULTI-SIGNAL CONVERGENCE</span></div>
         <div id="multi-signal-wrap"><div class="loading"><div class="spinner"></div></div></div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODEL INFO PAGE -->
+  <div id="page-info" class="page">
+
+    <!-- Hero banner -->
+    <div style="background:linear-gradient(135deg,rgba(88,166,255,0.08) 0%,rgba(188,140,255,0.05) 100%);border:1px solid rgba(88,166,255,0.15);border-radius:var(--radius-lg);padding:28px 32px;margin-bottom:24px;">
+      <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">LINE TRACKER MODEL — v1.0</div>
+      <div style="font-size:20px;font-weight:600;color:var(--text);margin-bottom:10px;">A machine learning system that finds edges over sportsbooks by analyzing how betting lines move from open to close.</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8;">The model tracks every line snapshot across 9 books — 6 public, 3 sharp — every 30 minutes. It learns which movement patterns historically predict when a line is mispriced relative to its true probability, then sizes bets using fractional Kelly Criterion.</div>
+    </div>
+
+    <div class="info-grid">
+
+      <!-- Methodology -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">⚙️</span>
+          <span class="info-section-title">Model Methodology</span>
+        </div>
+        <div class="info-section-body">
+          <div class="step-list">
+            <div class="step-row">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <div class="step-title">Data Collection</div>
+                <div class="step-desc">The scraper pulls live odds from The Odds API every 30 minutes across 9 books and 6 sports. Each run creates a new price snapshot appended to the event's line history file.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <div class="step-title">Feature Engineering</div>
+                <div class="step-desc">30+ movement features are extracted per event: how much Pinnacle moved, how fast, whether public books followed, sharp vs public divergence, reverse line movement flags, and splits data when available.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <div class="step-title">XGBoost Classification</div>
+                <div class="step-desc">A separate XGBoost model is trained per sport per market (e.g. NBA Moneyline, MLB Spreads). It predicts P(bet wins) from movement features. Platt scaling calibrates the output probabilities.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <div class="step-title">Edge Detection</div>
+                <div class="step-desc">Edge = Model probability − Pinnacle no-vig fair probability. If the model believes a team has a 55% chance of winning but Pinnacle's fair price implies 50%, that's a +5% edge.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">5</div>
+              <div class="step-content">
+                <div class="step-title">Kelly Criterion Sizing</div>
+                <div class="step-desc">Bets are sized at 25% of full Kelly to account for model uncertainty. Hard caps: max 4% per bet, max 20% total exposure. Portfolio-level scaling prevents over-concentration.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- What the model predicts -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">🎯</span>
+          <span class="info-section-title">What the Model Predicts</span>
+        </div>
+        <div class="info-section-body">
+          <p>The model predicts the <strong>probability that a bet wins</strong> based on how the line has moved — not who wins the game outright. It is purely a market inefficiency detector.</p>
+          <div class="predict-grid">
+            <div class="predict-card">
+              <div class="predict-sport">NBA</div>
+              <div class="predict-markets">Moneyline<br>Spreads<br>Totals</div>
+            </div>
+            <div class="predict-card">
+              <div class="predict-sport">MLB</div>
+              <div class="predict-markets">Moneyline<br>Spreads<br>Totals</div>
+            </div>
+            <div class="predict-card">
+              <div class="predict-sport">NHL</div>
+              <div class="predict-markets">Moneyline<br>Spreads<br>Totals</div>
+            </div>
+            <div class="predict-card">
+              <div class="predict-sport">CFB</div>
+              <div class="predict-markets">Moneyline<br>Spreads<br>Totals</div>
+            </div>
+            <div class="predict-card">
+              <div class="predict-sport">NFL</div>
+              <div class="predict-markets">Moneyline<br>Spreads<br>Totals</div>
+            </div>
+            <div class="predict-card">
+              <div class="predict-sport">CBB</div>
+              <div class="predict-markets">Moneyline<br>Spreads<br>Totals</div>
+            </div>
+          </div>
+          <p style="margin-top:14px;">A bet is flagged when <strong>model probability > Pinnacle no-vig probability + minimum edge threshold (0.5%)</strong>. Bets are ranked by edge size and Kelly-sized based on bankroll.</p>
+        </div>
+      </div>
+
+      <!-- Top Indicators -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">📊</span>
+          <span class="info-section-title">Key Indicators (Ranked)</span>
+        </div>
+        <div class="info-section-body">
+          <div class="indicator-list">
+            <div class="indicator-row">
+              <div class="indicator-rank">#1</div>
+              <div class="indicator-content">
+                <div class="indicator-name">pin_move_6h <span class="indicator-badge badge-high">HIGH</span></div>
+                <div class="indicator-desc">Pinnacle's implied probability change in the last 6 hours. Late sharp steam is the single strongest predictor of a mispriced line.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#2</div>
+              <div class="indicator-content">
+                <div class="indicator-name">sharp_pub_divergence <span class="indicator-badge badge-high">HIGH</span></div>
+                <div class="indicator-desc">American odds gap between the best public book and the best sharp book. Large gaps indicate sharp money has moved the sharp price but public books haven't caught up.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#3</div>
+              <div class="indicator-content">
+                <div class="indicator-name">sig_rlm <span class="indicator-badge badge-high">HIGH</span></div>
+                <div class="indicator-desc">Reverse Line Movement flag. Triggers when 65%+ of public tickets are on one side but the line moves the other way — the clearest sign of sharp action.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#4</div>
+              <div class="indicator-content">
+                <div class="indicator-name">money_vs_tickets <span class="indicator-badge badge-high">HIGH</span></div>
+                <div class="indicator-desc">Sharp money % minus ticket % from VSiN splits. A large positive value means big bets are on one side while small bettors are on the other — classic sharp signal.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#5</div>
+              <div class="indicator-content">
+                <div class="indicator-name">pin_move_speed <span class="indicator-badge badge-med">MED</span></div>
+                <div class="indicator-desc">Rate of Pinnacle's probability change per hour. Fast moves indicate urgent sharp action; slow drift is less significant.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#6</div>
+              <div class="indicator-content">
+                <div class="indicator-name">cross_book_std_change <span class="indicator-badge badge-med">MED</span></div>
+                <div class="indicator-desc">Change in standard deviation of implied probabilities across all books. Increasing disagreement = market inefficiency forming.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#7</div>
+              <div class="indicator-content">
+                <div class="indicator-name">hours_to_game <span class="indicator-badge badge-med">MED</span></div>
+                <div class="indicator-desc">Time until game start. Edges found close to game time (under 6 hours) are weighted more heavily as lines are more settled and sharp.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-rank">#8</div>
+              <div class="indicator-content">
+                <div class="indicator-name">n_reversals <span class="indicator-badge badge-low">LOW</span></div>
+                <div class="indicator-desc">Number of times the line changed direction. High reversals = contested market with two-way sharp action; lower confidence edge.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How to use it -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">📖</span>
+          <span class="info-section-title">How to Use the Slate</span>
+        </div>
+        <div class="info-section-body">
+          <div class="step-list">
+            <div class="step-row">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <div class="step-title">Focus on HIGH confidence bets first</div>
+                <div class="step-desc">HIGH confidence = edge ≥ 7% AND Kelly ≥ 2.5%. These are the model's strongest signals. MEDIUM = edge ≥ 4%. LOW = below that — smaller position sizes recommended.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <div class="step-title">Check the Signals column</div>
+                <div class="step-desc">SHARP = Pinnacle moved while public books stayed flat. RLM = public on one side, line moved other way. FADE = public overloaded one side with no sharp confirmation. CLV = pure model edge only.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <div class="step-title">Use the Bet$ column for sizing</div>
+                <div class="step-desc">The Bet$ amount is already Kelly-sized for a $10,000 bankroll. Scale proportionally for your bankroll: if you have $5,000, bet half the listed amount.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <div class="step-title">Bet at the listed book</div>
+                <div class="step-desc">The Book column shows where the best available price was found at scrape time. Check the current price before placing — lines move. If the price is worse than listed, recalculate edge.</div>
+              </div>
+            </div>
+            <div class="step-row">
+              <div class="step-num">5</div>
+              <div class="step-content">
+                <div class="step-title">Refresh before games start</div>
+                <div class="step-desc">The model updates every 30–60 minutes automatically. Hit ↺ REFRESH before placing any bet to ensure you have the latest slate. Edges can disappear as books adjust.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Blindspots -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">⚠️</span>
+          <span class="info-section-title">Model Blindspots</span>
+        </div>
+        <div class="info-section-body">
+          <div class="blindspot-list">
+            <div class="blindspot-row">
+              <div class="blindspot-icon">✗</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">No Injury / News Awareness</div>
+                <div class="blindspot-desc">The model does not know about late scratches, injuries, weather, or breaking news. A line moving because of a key player being ruled out looks identical to sharp money to the model. Always cross-check injury reports before betting.</div>
+              </div>
+            </div>
+            <div class="blindspot-row">
+              <div class="blindspot-icon">✗</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Early Season / Small Sample</div>
+                <div class="blindspot-desc">Models trained on fewer than 100 real game outcomes are using synthetic data. AUC of 0.50 means the model is guessing. Treat early-season predictions with skepticism until AUC consistently exceeds 0.55.</div>
+              </div>
+            </div>
+            <div class="blindspot-row">
+              <div class="blindspot-icon">✗</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">No VSiN Splits Data</div>
+                <div class="blindspot-desc">VSiN splits (public betting % vs money %) are currently returning 0 results — the RLM and Public Fade signals are based solely on line movement, not actual ticket/money percentages. These signals will strengthen when splits data flows.</div>
+              </div>
+            </div>
+            <div class="blindspot-row">
+              <div class="blindspot-icon">✗</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Limited Historical Depth</div>
+                <div class="blindspot-desc">Bootstrap pulls 3 days of history. The model's pattern recognition improves significantly after 30+ days of continuous scraping with real movement data across full game cycles.</div>
+              </div>
+            </div>
+            <div class="blindspot-row">
+              <div class="blindspot-icon">✗</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">CFB Off-Season Games</div>
+                <div class="blindspot-desc">College football spring games and early futures have very thin markets with low sharp action. These lines move for different reasons than regular season games. CFB predictions are least reliable outside Sept–Jan.</div>
+              </div>
+            </div>
+            <div class="blindspot-row">
+              <div class="blindspot-icon">✗</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Book Limits</div>
+                <div class="blindspot-desc">The model does not account for the fact that sharp books (Pinnacle, Circa) may limit or ban winning bettors. Public books listed are the betting target but have lower limits.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How to improve it -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">🚀</span>
+          <span class="info-section-title">How to Improve the Model</span>
+        </div>
+        <div class="info-section-body">
+          <div class="improve-list">
+            <div class="improve-row">
+              <div class="improve-icon">↑</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Let it run for 30+ days</div>
+                <div class="blindspot-desc">The single biggest improvement is time. More snapshots = better movement patterns. More completed games = real outcome labels instead of synthetic. AUC should climb from 0.50 toward 0.57–0.62 with a full season of data.</div>
+              </div>
+            </div>
+            <div class="improve-row">
+              <div class="improve-icon">↑</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Add an injury API</div>
+                <div class="blindspot-desc">Integrate RotowWire or ESPN's injury feed to flag games with key player scratches. Add a binary "has_major_injury" feature — this would dramatically reduce false positives caused by injury-driven line moves.</div>
+              </div>
+            </div>
+            <div class="improve-row">
+              <div class="improve-icon">↑</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Fix VSiN splits scraping</div>
+                <div class="blindspot-desc">The public betting % data from VSiN would unlock the RLM and Public Fade signals properly. Fix the parser or switch to Action Network's public API for splits data.</div>
+              </div>
+            </div>
+            <div class="improve-row">
+              <div class="improve-icon">↑</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Raise MIN_SAMPLES_TO_TRAIN</div>
+                <div class="blindspot-desc">Once you have 100+ real outcomes per sport, change MIN_SAMPLES_TO_TRAIN back to 80 and MIN_REAL_OUTCOMES to 100 in configs/config.py. The model will retrain on real data and edges will be much more reliable.</div>
+              </div>
+            </div>
+            <div class="improve-row">
+              <div class="improve-icon">↑</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Add opening line tracking</div>
+                <div class="blindspot-desc">The bootstrap history provides some opening lines but gaps exist. Storing the true market open (first posted line) separately from movement history would improve the line move magnitude features significantly.</div>
+              </div>
+            </div>
+            <div class="improve-row">
+              <div class="improve-icon">↑</div>
+              <div class="blindspot-content">
+                <div class="blindspot-title">Raise MIN_EDGE_TO_BET gradually</div>
+                <div class="blindspot-desc">Currently set to 0.5% to generate output during bootstrap. Once you have validated CLV > 0 in backtests, raise this to 2.5% (configs/config.py → MIN_EDGE_TO_BET = 0.025). This filters out low-conviction bets.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Sources -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">🗄️</span>
+          <span class="info-section-title">Data Sources</span>
+        </div>
+        <div class="info-section-body">
+          <div class="source-list">
+            <div class="source-row">
+              <div class="source-icon">📡</div>
+              <div class="source-content">
+                <div class="source-name">The Odds API</div>
+                <div class="source-desc">Primary odds source. Provides live and historical lines for ML, spreads, and totals across all 9 books. Also provides player prop pricing per event and completed game scores for outcome labeling. Updated every 30 minutes via scraper.</div>
+              </div>
+            </div>
+            <div class="source-row">
+              <div class="source-icon">📊</div>
+              <div class="source-content">
+                <div class="source-name">VSiN (Vegas Stats & Information Network)</div>
+                <div class="source-desc">Source for public betting splits — ticket % vs money % per market. Also provides player prop historical hit rates vs current lines. Currently returning limited data; used when available to power RLM and Public Fade signals.</div>
+              </div>
+            </div>
+            <div class="source-row">
+              <div class="source-icon">🏦</div>
+              <div class="source-content">
+                <div class="source-name">Sharp Books: Pinnacle, Circa, Bookmaker</div>
+                <div class="source-desc">Used as the sharp reference price. Pinnacle is the global standard for efficient pricing and is used as the CLV benchmark. Movement at these books vs public books is the core edge detection signal.</div>
+              </div>
+            </div>
+            <div class="source-row">
+              <div class="source-icon">🏪</div>
+              <div class="source-content">
+                <div class="source-name">Public Books: DraftKings, FanDuel, BetMGM, Bovada, William Hill, Bet365</div>
+                <div class="source-desc">Target betting books. The model identifies when these books are slow to adjust to sharp movement, creating a window where positive EV bets are available at above-fair-value prices.</div>
+              </div>
+            </div>
+            <div class="source-row">
+              <div class="source-icon">🤖</div>
+              <div class="source-content">
+                <div class="source-name">GitHub Actions (Automation)</div>
+                <div class="source-desc">All data collection, model training, and prediction generation runs automatically on GitHub's servers. Scraper fires every 30 minutes, training every 2 hours, predictions every hour. No local infrastructure required.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output glossary -->
+      <div class="info-section">
+        <div class="info-section-header">
+          <span class="info-section-icon">📋</span>
+          <span class="info-section-title">Reading the Slate — Column Guide</span>
+        </div>
+        <div class="info-section-body">
+          <div class="indicator-list">
+            <div class="indicator-row">
+              <div class="indicator-content">
+                <div class="indicator-name">Model%</div>
+                <div class="indicator-desc">The model's estimated win probability after calibration. This is the core output — how likely the model thinks this bet is to win.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-content">
+                <div class="indicator-name">Fair%</div>
+                <div class="indicator-desc">Pinnacle's no-vig implied probability — the market's best estimate of true probability after removing the bookmaker's margin.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-content">
+                <div class="indicator-name">Edge</div>
+                <div class="indicator-desc">Model% minus Fair%. The core metric. Positive edge = model believes this bet is underpriced. Higher is better. Anything above 5% is considered significant.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-content">
+                <div class="indicator-name">EV%</div>
+                <div class="indicator-desc">Expected value as a percentage of stake. EV% = (Model% × profit on win) − (1 − Model%). Positive EV = profitable bet in the long run.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-content">
+                <div class="indicator-name">Bet$</div>
+                <div class="indicator-desc">Kelly-sized bet amount for a $10,000 bankroll. Already scaled to 25% fractional Kelly with a 4% hard cap per bet and 20% total exposure cap.</div>
+              </div>
+            </div>
+            <div class="indicator-row">
+              <div class="indicator-content">
+                <div class="indicator-name">Conf (Confidence)</div>
+                <div class="indicator-desc">HIGH = edge ≥ 7% and Kelly ≥ 2.5%. MEDIUM = edge ≥ 4% and Kelly ≥ 1.2%. LOW = below those thresholds. Prioritize HIGH and MEDIUM bets.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -389,7 +859,7 @@ async function loadSlate() {
         <span class="empty-icon">⚙️</span>
         Could not load slate.<br>
         <span style="color:var(--dim);font-size:10px">${e.message}</span><br>
-        <span style="color:var(--dim)">Check that Line-Tracker-Model workflows have run.</span>
+        <span style="color:var(--dim)">Make Line-Tracker-Model repo public or check workflows ran.</span>
       </div>`;
   }
 }
