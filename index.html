@@ -908,8 +908,10 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`page-${name}`).classList.add('active');
   btn.classList.add('active');
-  if (name === 'charts'  && !chartsLoaded)  loadCharts();
-  if (name === 'metrics' && !metricsLoaded) loadMetrics();
+
+  if (name === 'charts'   && !chartsLoaded)   loadCharts();
+  if (name === 'metrics'  && !metricsLoaded)  loadMetrics();
+  if (name === 'patterns' && !patternsLoaded) loadPatterns();
 }
 
 // ── Patterns ──────────────────────────────────────────────────────────
