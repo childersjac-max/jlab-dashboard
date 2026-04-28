@@ -155,9 +155,152 @@ tbody tr:last-child td { border-bottom:none; }
   <button class="tab active" onclick="switchTab('slate',this)">Today's Slate</button>
   <button class="tab" onclick="switchTab('charts',this)">Performance</button>
   <button class="tab" onclick="switchTab('metrics',this)">Backtest</button>
+  <button class="tab" onclick="switchTab('patterns',this)">Patterns</button>
   <button class="tab" onclick="switchTab('info',this)">Model Info</button>
 </nav>
 
+  <!-- PATTERNS PAGE -->
+  <div id="page-patterns" class="page">
+
+    <!-- Filter bar -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:20px;">
+      <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">FILTER PATTERNS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+        <div>
+          <label style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">SPORT</label>
+          <select id="pf-sport" onchange="filterPatterns()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font-mono);font-size:11px;">
+            <option value="">All Sports</option>
+            <option value="basketball_nba">NBA</option>
+            <option value="baseball_mlb">MLB</option>
+            <option value="icehockey_nhl">NHL</option>
+            <option value="americanfootball_nfl">NFL</option>
+            <option value="americanfootball_ncaaf">CFB</option>
+            <option value="basketball_ncaab">CBB</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">MARKET</label>
+          <select id="pf-market" onchange="filterPatterns()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font-mono);font-size:11px;">
+            <option value="">All Markets</option>
+            <option value="moneyline">Moneyline</option>
+            <option value="spread">Spread</option>
+            <option value="total">Total</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">PATTERN TYPE</label>
+          <select id="pf-type" onchange="filterPatterns()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font-mono);font-size:11px;">
+            <option value="">All Types</option>
+            <option value="full_combo">Full Combo (line+move+tickets+money)</option>
+            <option value="line_ticket_money">Line + Tickets + Money</option>
+            <option value="move_ticket_money">Movement + Tickets + Money</option>
+            <option value="ticket_money_combo">Tickets + Money</option>
+            <option value="sharp_side_pattern">Sharp Side Pattern</option>
+            <option value="ticket_pct">Ticket % Only</option>
+            <option value="money_pct">Money % Only</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">MIN EV%</label>
+          <select id="pf-ev" onchange="filterPatterns()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font-mono);font-size:11px;">
+            <option value="0">Any EV</option>
+            <option value="3">+3% EV</option>
+            <option value="5">+5% EV</option>
+            <option value="10">+10% EV</option>
+            <option value="15">+15% EV</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">MIN SAMPLES</label>
+          <select id="pf-samples" onchange="filterPatterns()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font-mono);font-size:11px;">
+            <option value="5">5+ samples</option>
+            <option value="10">10+ samples</option>
+            <option value="20">20+ samples</option>
+            <option value="50">50+ samples</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-family:var(--font-mono);font-size:10px;color:var(--muted);display:block;margin-bottom:4px;">SORT BY</label>
+          <select id="pf-sort" onchange="filterPatterns()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;font-family:var(--font-mono);font-size:11px;">
+            <option value="ev">EV% (highest first)</option>
+            <option value="ev_neg">EV% (lowest first — fade signals)</option>
+            <option value="n">Sample size</option>
+            <option value="hit">Hit rate</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-family:var(--font-mono);font-size:10px;color:var(--muted)" id="pattern-count">Loading patterns…</div>
+    </div>
+
+    <!-- Summary stat cards -->
+    <div class="stat-row" id="pattern-stats" style="margin-bottom:20px;">
+      <div class="stat-card" style="--accent:var(--green)">
+        <div class="stat-label">Best EV Pattern</div>
+        <div class="stat-value pos" id="ps-best-ev">—</div>
+        <div class="stat-sub" id="ps-best-desc">—</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--blue)">
+        <div class="stat-label">Total Patterns</div>
+        <div class="stat-value" id="ps-total">—</div>
+        <div class="stat-sub">discovered combinations</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--cyan)">
+        <div class="stat-label">Avg Hit Rate</div>
+        <div class="stat-value" id="ps-avg-hit">—</div>
+        <div class="stat-sub">across all patterns</div>
+      </div>
+      <div class="stat-card" style="--accent:var(--purple)">
+        <div class="stat-label">Positive EV %</div>
+        <div class="stat-value" id="ps-pos-ev">—</div>
+        <div class="stat-sub">of all patterns</div>
+      </div>
+    </div>
+
+    <!-- Pattern table -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">PATTERN RESULTS</span>
+        <span class="panel-meta">ticket% + money% + line + movement → EV</span>
+      </div>
+      <div id="pattern-body">
+        <div class="loading"><div class="spinner"></div> Loading patterns…</div>
+      </div>
+    </div>
+
+    <!-- Pattern explainer -->
+    <div class="panel" style="margin-top:20px;">
+      <div class="panel-header"><span class="panel-title">HOW TO READ PATTERNS</span></div>
+      <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;padding:20px 24px;">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px;">EXAMPLE: SPREAD PATTERN</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+            <strong style="color:var(--text)">Pattern:</strong> "Line: Dog (+3.5 to +7.5) | Move: Big move toward | Tickets: 30-45% | Money: 65-75%"<br>
+            <strong style="color:var(--text)">Means:</strong> When a team getting 3.5 to 7.5 points has only 30-45% of public tickets but 65-75% of the money is on them AND the line moved toward them significantly → sharp money is pouring in on the underdog while public bets the favorite.<br>
+            <strong style="color:var(--text)">EV:</strong> If this shows +14%, betting that underdog has historically returned +14% per dollar wagered.
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px;">EXAMPLE: MONEYLINE PATTERN</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+            <strong style="color:var(--text)">Pattern:</strong> "Line: Slight dog (+110 to +200) | Move: Move toward (+2 to +5pts) | Tickets: 45-55% | Money: 55-65%"<br>
+            <strong style="color:var(--text)">Means:</strong> A slight underdog priced +110 to +200 where the line moved in their favor (they got cheaper to bet) while money split slightly toward them.<br>
+            <strong style="color:var(--text)">EV:</strong> Positive EV here = the market is undervaluing this team relative to where sharp money is pointing.
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px;">TICKET% VS MONEY%</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+            <strong style="color:var(--text)">Key insight:</strong> Ticket % = how many bettors. Money % = how much dollar value.<br>
+            When <strong style="color:var(--green)">money% >> ticket%</strong> → a few large bets (sharp money) → follow the money.<br>
+            When <strong style="color:var(--red)">ticket% >> money%</strong> → many small bets (public squares) → consider fading.<br>
+            The pattern table shows you which combinations of these splits have historically produced positive EV.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  
 <main>
 
   <!-- SLATE PAGE -->
@@ -769,6 +912,150 @@ function switchTab(name, btn) {
   if (name === 'metrics' && !metricsLoaded) loadMetrics();
 }
 
+// ── Patterns ──────────────────────────────────────────────────────────
+let allPatterns = [];
+let patternsLoaded = false;
+
+async function loadPatterns() {
+  if (patternsLoaded) return;
+  patternsLoaded = true;
+  try {
+    const data = await fetchJSON('pipeline_output/patterns.json');
+    // Flatten all patterns from all sport/market groups
+    allPatterns = [];
+    for (const [groupKey, group] of Object.entries(data)) {
+      for (const pattern of (group.patterns || [])) {
+        allPatterns.push({
+          ...pattern,
+          sport_key: group.sport_key,
+          market:    group.market,
+          sport_label: {
+            'basketball_nba':'NBA','baseball_mlb':'MLB','icehockey_nhl':'NHL',
+            'americanfootball_nfl':'NFL','americanfootball_ncaaf':'CFB',
+            'basketball_ncaab':'CBB'
+          }[group.sport_key] || group.sport_key,
+        });
+      }
+    }
+    updatePatternStats();
+    filterPatterns();
+  } catch(e) {
+    document.getElementById('pattern-body').innerHTML = `
+      <div class="empty">
+        <span class="empty-icon">🔍</span>
+        No pattern data yet.<br>
+        <span style="color:var(--dim)">Run "5. Pattern Discovery" workflow in GitHub Actions.</span><br>
+        <span style="color:var(--dim);font-size:10px">${e.message}</span>
+      </div>`;
+    document.getElementById('pattern-count').textContent = 'No patterns loaded';
+  }
+}
+
+function updatePatternStats() {
+  const n = allPatterns.length;
+  document.getElementById('ps-total').textContent = n.toLocaleString();
+
+  if (n === 0) return;
+
+  const posEv = allPatterns.filter(p => p.ev_pct > 0);
+  document.getElementById('ps-pos-ev').textContent =
+    `${((posEv.length / n) * 100).toFixed(0)}%`;
+
+  const avgHit = allPatterns.reduce((s,p) => s + (p.hit_rate||0), 0) / n;
+  document.getElementById('ps-avg-hit').textContent = `${avgHit.toFixed(1)}%`;
+
+  const best = [...allPatterns].sort((a,b) => (b.ev_pct||0) - (a.ev_pct||0))[0];
+  if (best) {
+    document.getElementById('ps-best-ev').textContent = fmtPct(best.ev_pct);
+    document.getElementById('ps-best-desc').textContent =
+      best.description.length > 40 ? best.description.slice(0,40)+'…' : best.description;
+  }
+}
+
+function filterPatterns() {
+  const sport   = document.getElementById('pf-sport').value;
+  const market  = document.getElementById('pf-market').value;
+  const type    = document.getElementById('pf-type').value;
+  const minEv   = parseFloat(document.getElementById('pf-ev').value) || 0;
+  const minN    = parseInt(document.getElementById('pf-samples').value) || 5;
+  const sortBy  = document.getElementById('pf-sort').value;
+
+  let filtered = allPatterns.filter(p => {
+    if (sport  && p.sport_key !== sport)  return false;
+    if (market && p.market    !== market) return false;
+    if (type   && p.type      !== type)   return false;
+    if ((p.ev_pct||0) < minEv)            return false;
+    if ((p.n||0) < minN)                  return false;
+    return true;
+  });
+
+  // Sort
+  if (sortBy === 'ev')     filtered.sort((a,b) => (b.ev_pct||0) - (a.ev_pct||0));
+  if (sortBy === 'ev_neg') filtered.sort((a,b) => (a.ev_pct||0) - (b.ev_pct||0));
+  if (sortBy === 'n')      filtered.sort((a,b) => (b.n||0) - (a.n||0));
+  if (sortBy === 'hit')    filtered.sort((a,b) => (b.hit_rate||0) - (a.hit_rate||0));
+
+  document.getElementById('pattern-count').textContent =
+    `Showing ${filtered.length} patterns (${allPatterns.length} total)`;
+
+  renderPatternTable(filtered);
+}
+
+function renderPatternTable(patterns) {
+  if (patterns.length === 0) {
+    document.getElementById('pattern-body').innerHTML =
+      '<div class="empty">No patterns match your filters. Try loosening the criteria.</div>';
+    return;
+  }
+
+  const typeLabels = {
+    'full_combo':        'Full Combo',
+    'line_ticket_money': 'Line+Tickets+Money',
+    'move_ticket_money': 'Move+Tickets+Money',
+    'ticket_money_combo':'Tickets+Money',
+    'sharp_side_pattern':'Sharp Side',
+    'ticket_pct':        'Ticket% Only',
+    'money_pct':         'Money% Only',
+  };
+
+  const rows = patterns.slice(0, 200).map(p => {
+    const ev      = parseFloat(p.ev_pct) || 0;
+    const evCls   = ev >= 5 ? 'pos' : ev >= 0 ? 'neu' : 'neg';
+    const evStr   = ev >= 0 ? `+${ev.toFixed(2)}%` : `${ev.toFixed(2)}%`;
+    const hit     = parseFloat(p.hit_rate) || 0;
+    const hitCls  = hit >= 55 ? 'pos' : hit >= 45 ? '' : 'neg';
+    const typeLabel = typeLabels[p.type] || p.type;
+    const mktLabel = {'moneyline':'ML','spread':'SPR','total':'TOT'}[p.market] || p.market.toUpperCase();
+
+    // Confidence based on sample size and EV
+    const conf = p.n >= 20 && Math.abs(ev) >= 5 ? 'HIGH'
+               : p.n >= 10 && Math.abs(ev) >= 3 ? 'MEDIUM' : 'LOW';
+    const confCls = conf === 'HIGH' ? 'conf-HIGH' : conf === 'MEDIUM' ? 'conf-MEDIUM' : 'conf-LOW';
+
+    return `<tr>
+      <td><strong>${p.sport_label}</strong></td>
+      <td><span class="market-tag">${mktLabel}</span></td>
+      <td style="max-width:320px;white-space:normal;font-size:11px;line-height:1.5">${p.description}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--dim)">${typeLabel}</td>
+      <td class="${evCls}"><strong>${evStr}</strong></td>
+      <td class="${hitCls}">${hit.toFixed(1)}%</td>
+      <td style="font-family:var(--font-mono)">${p.n}</td>
+      <td style="font-family:var(--font-mono);color:var(--muted)">${(p.avg_fair_prob||0).toFixed(1)}%</td>
+      <td><span class="conf ${confCls}">${conf}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('pattern-body').innerHTML = `
+    <div class="bet-table-wrap"><table>
+      <thead><tr>
+        <th>Sport</th><th>Mkt</th><th>Pattern Description</th><th>Type</th>
+        <th>EV%</th><th>Hit Rate</th><th>Samples</th><th>Avg Fair%</th><th>Conf</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    ${patterns.length > 200 ? `<div style="padding:12px 16px;font-family:var(--font-mono);font-size:10px;color:var(--muted)">Showing top 200 of ${patterns.length} matches</div>` : ''}`;
+}
+  
 async function loadSlate() {
   document.getElementById('slate-body').innerHTML =
     '<div class="loading"><div class="spinner"></div> Loading slate…</div>';
