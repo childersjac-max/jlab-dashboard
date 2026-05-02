@@ -1,4 +1,4 @@
-    const rowsHtml = validBets.map(b => {
+const rowsHtml = validBets.map(b => {
       const odds = parseFloat(b.american_odds)||0;
       const oddsStr = b.american_odds_display||(odds>0?`+${Math.round(odds)}`:`${Math.round(odds)}`);
       const edge = parseFloat(b.edge_pct)||0;
