@@ -67,6 +67,10 @@ tbody tr:last-child td { border-bottom:none; }
 .sig-RLM   { background:rgba(188,140,255,0.1); color:var(--purple); border:1px solid rgba(188,140,255,0.25); }
 .sig-FADE  { background:rgba(57,197,207,0.1); color:var(--cyan); border:1px solid rgba(57,197,207,0.25); }
 .sig-CLV   { background:rgba(255,255,255,0.05); color:var(--muted); border:1px solid var(--border); }
+.sig-INJURY { background:rgba(248,81,73,0.1); color:var(--red); border:1px solid rgba(248,81,73,0.3); }
+.sig-OPP-INJ { background:rgba(63,185,80,0.1); color:var(--green); border:1px solid rgba(63,185,80,0.3); }
+.inj-note { margin-top:6px; padding:5px 8px; background:rgba(248,81,73,0.07); border-left:2px solid var(--red); border-radius:3px; font-size:10px; color:var(--red); line-height:1.4; font-family:var(--font-mono); }
+.opp-inj-note { margin-top:6px; padding:5px 8px; background:rgba(63,185,80,0.07); border-left:2px solid var(--green); border-radius:3px; font-size:10px; color:var(--green); line-height:1.4; font-family:var(--font-mono); }
 .market-tag { display:inline-block; padding:2px 7px; border-radius:3px; font-family:var(--font-mono); font-size:9px; font-weight:700; background:rgba(255,255,255,0.05); color:var(--dim); border:1px solid var(--border); text-transform:uppercase; }
 .odds-tag { font-family:var(--font-mono); font-size:13px; font-weight:700; }
 .charts-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:20px; }
@@ -665,6 +669,24 @@ tbody tr:last-child td { border-bottom:none; }
                 <div class="sig-decode-title">Model Edge Only (CLV)</div>
                 <div class="sig-decode-desc">The model's XGBoost output shows a positive edge vs Pinnacle's fair price, but no movement-based signal fired. This means the model detected a statistical pattern in the features but there's no independent confirmation from line movement or splits data.</div>
                 <div class="sig-decode-action">→ Lowest conviction. Treat as informational during bootstrap.</div>
+              </div>
+            </div>
+
+            <div class="sig-decode-row">
+              <div class="sig-decode-tag"><span class="sig sig-INJURY">⚕ RISK</span></div>
+              <div class="sig-decode-body">
+                <div class="sig-decode-title">Injury Risk — Bet Side Affected</div>
+                <div class="sig-decode-desc">A key player (QB, SP, PG, G, etc.) on the team you're betting is listed as Out or Doubtful on ESPN's injury report. The model's edge was calculated on historical data that may not reflect this roster change — the current line may already be adjusted, or may not be yet. Check the injury note for the specific player.</div>
+                <div class="sig-decode-action">→ Reduce bet size or pass. Verify the line moved since the injury was announced.</div>
+              </div>
+            </div>
+
+            <div class="sig-decode-row">
+              <div class="sig-decode-tag"><span class="sig sig-OPP-INJ">⚕ OPP</span></div>
+              <div class="sig-decode-body">
+                <div class="sig-decode-title">Opponent Injured — Edge Booster</div>
+                <div class="sig-decode-desc">A key player on the opposing team is Out or Doubtful. This is a positive signal for the side you're betting — the opponent is weakened and the model's edge may be understated if the injury isn't fully priced in yet. Public books are often slow to adjust for opponent injuries.</div>
+                <div class="sig-decode-action">→ Positive signal. Consider full-size or slight oversize within your Kelly limit.</div>
               </div>
             </div>
 
@@ -1269,6 +1291,8 @@ async function loadSlate() {
         'REVERSE_LINE_MOVEMENT':['RLM','sig-RLM'],'RLM':['RLM','sig-RLM'],
         'PUBLIC_FADE':['FADE','sig-FADE'],'FADE':['FADE','sig-FADE'],
         'CLV_MODEL':['CLV','sig-CLV'],'CLV':['CLV','sig-CLV'],
+        'INJURY_RISK':['⚕ RISK','sig-INJURY'],
+        'OPP_INJURED':['⚕ OPP','sig-OPP-INJ'],
       };
       const [l,c] = map[s]||[s.replace(/_/g,' ').slice(0,6),'sig-CLV'];
       return `<span class="sig ${c}">${l}</span>`;
@@ -1364,6 +1388,19 @@ async function loadSlate() {
           </div>
           <div class="bet-card-footer">
             <div class="signals">${sigs}</div>
+            ${(()=>{
+              const injPlayers = (b.injured_players||'').trim();
+              const sideScore  = parseFloat(b.side_injury_score)||0;
+              const oppScore   = parseFloat(b.opp_injury_score)||0;
+              let notes = '';
+              if (sideScore >= 0.5 && injPlayers) {
+                notes += `<div class="inj-note">⚕ INJURY RISK · ${injPlayers}</div>`;
+              }
+              if (oppScore >= 1.0 && injPlayers) {
+                notes += `<div class="opp-inj-note">⚕ OPP INJURED · ${injPlayers}</div>`;
+              }
+              return notes;
+            })()}
           </div>
         </div>`;
     }).join('');
